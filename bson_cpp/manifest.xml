@@ -1,0 +1,15 @@
+<package>
+  <description brief="bson_cpp">
+
+     bson_cpp is a wrapper for the BSON-cpp library.
+
+  </description>
+  <author>Cephal Systems</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/bson_cpp</url>
+  <depend package="roscpp"/>
+
+</package>
+
+
