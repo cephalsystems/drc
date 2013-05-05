@@ -4,7 +4,7 @@
  */
 
 #include "ros/ros.h"
-#include "sensor_msgs/PointCloud2.h"
+#include "sensor_msgs/PointCloud.h"
 #include "mongo/bson/bson.h"
 #include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
@@ -26,12 +26,33 @@ void broadcast(mongo::BSONObj obj)
     }
 }
 
-void pclCallback(const sensor_msgs::PointCloud2ConstPtr msg) 
+void pclCallback(const sensor_msgs::PointCloudConstPtr msg) 
 {
   // TODO: create a BSON message and send it out
   mongo::BSONObjBuilder b;
-  b.append("name", "Joe");
-  b.append("age", 33);
+  b.append("seq", msg->header.seq);
+  b.append("frame_id", msg->header.frame_id);
+
+  std::vector<float> points;
+  BOOST_FOREACH( geometry_msgs::Point32 point, msg->points ) {
+    points.push_back(point.x);
+    points.push_back(point.y);
+    points.push_back(point.z);
+  }
+  b.appendBinData("points", 
+			      points.size()*sizeof(float),
+			      mongo::BinDataGeneral,
+			      points.data());
+  
+  mongo::BSONObjBuilder bson_channels;
+  BOOST_FOREACH( sensor_msgs::ChannelFloat32 channel, msg->channels ) {
+    bson_channels.appendBinData(channel.name, 
+				channel.values.size()*sizeof(float),
+				mongo::BinDataGeneral,
+				channel.values.data());
+  }
+  b.append("channels", bson_channels.obj());
+
   mongo::BSONObj bson_obj = b.obj();
 
   // Send this data to each client
@@ -65,7 +86,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
 
   // Subscribe to a point cloud stream
-  ros::Subscriber sub = nh.subscribe<sensor_msgs::PointCloud2>("points", 1, pclCallback);
+  ros::Subscriber sub = nh.subscribe<sensor_msgs::PointCloud>("points", 1, pclCallback);
 
   // Open a TCP socket
   int stream_port;
