@@ -1,0 +1,16 @@
+<package>
+  <description brief="bson_streamer">
+
+     bson_streamer streams ROS topics over TCP sockets using BSON.
+
+  </description>
+  <author>Cephal Systems</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/bson_streamer</url>
+  <depend package="roscpp"/>
+  <rosdep name="mongodb-dev"/>
+
+</package>
+
+
