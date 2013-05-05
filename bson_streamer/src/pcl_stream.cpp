@@ -7,8 +7,9 @@
 #include "sensor_msgs/PointCloud2.h"
 #include "mongo/bson/bson.h"
 #include <boost/asio.hpp>
-#include "boost/thread/thread.hpp"
-#include "boost/thread/locks.hpp"
+#include <boost/thread/thread.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/foreach.hpp>
 #include <vector>
 
 using boost::asio::ip::tcp; 
@@ -20,9 +21,12 @@ void pclCallback(const sensor_msgs::PointCloud2ConstPtr msg)
 {
   // TODO: create a BSON message and send it out
 
+  // Send this data to each client
   {
     boost::lock_guard<boost::mutex> lock(_stream_lock);
-    // TODO: send this to everyone.
+    BOOST_FOREACH( boost::shared_ptr<tcp::iostream> stream, _streams ) {
+      // Send to this TCP STREAM
+    }
   }
 }
 
@@ -30,18 +34,20 @@ int main(int argc, char **argv)
 {
   // Initialize ROS node
   ros::init(argc, argv, "pcl_stream");
-  ros::NodeHandle n;
+  ros::NodeHandle nh;
 
   // Subscribe to a point cloud stream
-  ros::Subscriber sub = n.subscribe<sensor_msgs::PointCloud2>("points", 1, pclCallback);
+  ros::Subscriber sub = nh.subscribe<sensor_msgs::PointCloud2>("points", 1, pclCallback);
 
   // Start a ROS handling thread
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
   // Open a TCP socket
+  int stream_port;
+  nh.param<int>("port", stream_port, 6666);
   boost::asio::io_service io_service;
-  tcp::endpoint endpoint(tcp::v4(), 6666);
+  tcp::endpoint endpoint(tcp::v4(), stream_port);
   tcp::acceptor acceptor(io_service, endpoint);
 
   while(ros::ok()) {
