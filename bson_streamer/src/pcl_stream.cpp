@@ -20,12 +20,17 @@ boost::mutex _stream_lock;
 void pclCallback(const sensor_msgs::PointCloud2ConstPtr msg) 
 {
   // TODO: create a BSON message and send it out
+  mongo::BSONObjBuilder b;
+  b.append("name", "Joe");
+  b.append("age", 33);
+  mongo::BSONObj bson_points = b.obj();
 
   // Send this data to each client
   {
     boost::lock_guard<boost::mutex> lock(_stream_lock);
     BOOST_FOREACH( boost::shared_ptr<tcp::iostream> stream, _streams ) {
-      // Send to this TCP STREAM
+      (*stream) << bson_points.objdata();
+      stream->flush();
     }
   }
 }
