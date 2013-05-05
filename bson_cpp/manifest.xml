@@ -8,7 +8,9 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/bson_cpp</url>
+
   <depend package="roscpp"/>
+  <rosdep name="libboost-filesystem-dev"/>
 
 </package>
 

@@ -11,3 +11,8 @@
 *.lai
 *.la
 *.a
+
+# Ignore build directories
+build/
+bin/
+lib/
