@@ -21,7 +21,9 @@ void broadcast(mongo::BSONObj obj)
 {
     boost::lock_guard<boost::mutex> lock(_stream_lock);
     BOOST_FOREACH( boost::shared_ptr<tcp::iostream> stream, _streams ) {
-      (*stream) << obj.objdata();
+      int size = obj.objsize();
+      stream->write(reinterpret_cast<const char *>(&size), sizeof(int)); 
+      stream->write(obj.objdata(), size);
       stream->flush();
     }
 }
@@ -40,9 +42,9 @@ void pclCallback(const sensor_msgs::PointCloudConstPtr msg)
     points.push_back(point.z);
   }
   b.appendBinData("points", 
-			      points.size()*sizeof(float),
-			      mongo::BinDataGeneral,
-			      points.data());
+		  points.size()*sizeof(float),
+		  mongo::BinDataGeneral,
+		  points.data());
   
   mongo::BSONObjBuilder bson_channels;
   BOOST_FOREACH( sensor_msgs::ChannelFloat32 channel, msg->channels ) {
@@ -86,7 +88,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
 
   // Subscribe to a point cloud stream
-  ros::Subscriber sub = nh.subscribe<sensor_msgs::PointCloud>("points", 1, pclCallback);
+  ros::Subscriber sub = nh.subscribe<sensor_msgs::PointCloud>("points", 10, pclCallback);
 
   // Open a TCP socket
   int stream_port;
