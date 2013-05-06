@@ -65,12 +65,13 @@ void serverThreadFn(boost::asio::io_service& io_service, int port)
 {
   tcp::endpoint endpoint(tcp::v4(), port);
   tcp::acceptor acceptor(io_service, endpoint);
+  acceptor.set_option(boost::asio::ip::tcp::no_delay(false));
   
   while (ros::ok()) {
     boost::shared_ptr<tcp::iostream> stream = boost::make_shared<tcp::iostream>();
-    boost::system::error_code ec;
-    
+    boost::system::error_code ec;    
     acceptor.accept(*stream->rdbuf(), ec);
+
     if (ec) {
       ROS_WARN("Connection failed: %s", ec.message().c_str());
       continue;
