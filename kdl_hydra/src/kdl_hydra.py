@@ -125,7 +125,7 @@ def hydra_callback(hydra_msg):
 
         # Compute IK for desired joint position
         right_desired = kdl.JntArray(right_q.rows())
-        right_ret = left_ik.CartToJnt(right_q, right_target, right_desired);
+        right_ret = right_ik.CartToJnt(right_q, right_target, right_desired);
         if (right_ret < 0):
             raise Exception('Right inverse kinematics failed with ' + str(right_ret))
 
