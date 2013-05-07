@@ -16,3 +16,7 @@
 build/
 bin/
 lib/
+
+# Ignore editor files
+*~
+\#*
