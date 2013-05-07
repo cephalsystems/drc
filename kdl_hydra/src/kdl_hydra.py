@@ -14,8 +14,14 @@ import PyKDL as kdl
 
 from razer_hydra.msg import Hydra
 from sensor_msgs.msg import JointState
+from osrf_msgs.msg import JointCommands
 
 import threading
+
+kp = {}
+ki = {}
+kd = {}
+i_clamp = {}
 
 tf = None
 robot_urdf = None
@@ -37,6 +43,23 @@ left_q = None
 right_q = None
 
 lock = threading.Lock()
+pub = None
+
+def load_gains(atlas_msg):
+    global kp, ki, kd
+
+    # Only load gains once
+    if kp or ki or kd:
+        return
+    
+    # Load each gain into dictionary
+    for i in xrange(len(atlas_msg.name)):
+        name = atlas_msg.name[i]
+        kp[name] = rospy.get_param('atlas_controller/gains/' + name + '/p')
+        ki[name] = rospy.get_param('atlas_controller/gains/' + name + '/i')
+        kd[name] = rospy.get_param('atlas_controller/gains/' + name + '/d')
+        i_clamp[name] = rospy.get_param('atlas_controller/gains/' + name + '/i_clamp')
+
 
 def create_IK_solvers():
     global left_ik, right_ik
@@ -66,9 +89,13 @@ def atlas_callback(atlas_msg):
     global left_q, right_q
 
     with lock:
+
+        # Load gains if not already loaded
+        load_gains(atlas_msg)
+
         # TODO: this can be optimized
         q = kdl.JntArray(left_chain.getNrOfJoints())
-        for chain_idx in range(0, left_chain.getNrOfJoints()):
+        for chain_idx in xrange(0, left_chain.getNrOfJoints()):
             
             # Get current joint name and use it to get joint index in state message
             name = left_chain.getSegment(chain_idx).getJoint().getName()
@@ -81,7 +108,7 @@ def atlas_callback(atlas_msg):
         left_q = q
 
         q = kdl.JntArray(right_chain.getNrOfJoints())
-        for chain_idx in range(0, right_chain.getNrOfJoints()):
+        for chain_idx in xrange(0, right_chain.getNrOfJoints()):
             
             # Get current joint name and use it to get joint index in state message
             name = right_chain.getSegment(chain_idx).getJoint().getName()
@@ -98,6 +125,8 @@ def hydra_callback(hydra_msg):
     global tf, robot_urdf, robot_kdl
     global left_ik, right_ik
     global left_q, right_q
+    global kp, ki, kd
+    global pub
 
     # Verify that necessary frames and transforms exist
     if not tf.frameExists('/utorso'):
@@ -114,6 +143,9 @@ def hydra_callback(hydra_msg):
     
     with lock:
 
+        # Create joint command for atlas
+        command = JointCommands()
+
         # Set the current left hand target position
         try:
             # Compute the relative transform to the hand
@@ -127,10 +159,22 @@ def hydra_callback(hydra_msg):
             if (left_ret < 0):
                 raise Exception('Left inverse kinematics failed with ' + str(left_ret))
 
-            # TODO: send command to atlas!
+            # Fill in left command for atlas
+            for idx in range(0, left_chain.getNrOfJoints()):
+                name = left_chain.getSegment(idx).getJoint().getName()
+                command.name.append(name)
+                command.position.append(left_desired[idx])
+                command.velocity.append(0.0)
+                command.effort.append(0.0)
+                command.kp_position.append(kp[name])
+                command.ki_position.append(ki[name])
+                command.kd_position.append(kd[name])
+                command.kp_velocity.append(0.0)
+                command.i_effort_min.append(-i_clamp[name])
+                command.i_effort_max.append(i_clamp[name])
 
         except Exception as e:
-            rospy.logwarn('Unable to compute left hand target: %s', str(e))
+            rospy.logwarn('Left hand failed: %s', str(e))
 
         # Set the current right hand target position
         try:
@@ -145,14 +189,29 @@ def hydra_callback(hydra_msg):
             if (right_ret < 0):
                 raise Exception('Right inverse kinematics failed with ' + str(right_ret))
 
-            # TODO: send command to atlas!
+            # Fill in right command for atlas
+            for idx in range(0, right_chain.getNrOfJoints()):
+                name = right_chain.getSegment(idx).getJoint().getName()
+                command.name.append(name)
+                command.position.append(right_desired[idx])
+                command.velocity.append(0.0)
+                command.effort.append(0.0)
+                command.kp_position.append(kp[name])
+                command.ki_position.append(ki[name])
+                command.kd_position.append(kd[name])
+                command.kp_velocity.append(0.0)
+                command.i_effort_min.append(-i_clamp[name])
+                command.i_effort_max.append(i_clamp[name])
 
         except Exception as e:
-            rospy.logwarn('Unable to compute left hand target: %s', str(e))
-            
+            rospy.logwarn('Right hand failed: %s', str(e))
+
+        # Send command to atlas!
+        pub.publish(command)
+        
 
 def main():
-    global tf, robot_urdf, robot_kdl
+    global tf, robot_urdf, robot_kdl, pub
 
     # Initialize the ROS node
     rospy.init_node('kdl_hydra')
@@ -177,6 +236,9 @@ def main():
     # Subscribe to hydra and atlas updates
     rospy.Subscriber("/hydra_calib", Hydra, hydra_callback)
     rospy.Subscriber("/atlas/joint_states", JointState, atlas_callback)
+
+    # Publish Atlas commands
+    pub = rospy.Publisher('/atlas/joint_commands', JointCommands)
 
     # Start main event handling loop
     rospy.loginfo('Started kdl_hydra node...')
