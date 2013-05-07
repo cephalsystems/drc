@@ -1,0 +1,18 @@
+<package>
+  <description brief="kdl_hydra">
+
+     kdl_hydra uses PyKDL to convert hydra positions into joint configurations
+
+  </description>
+  <author>Cephal Systems</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/kdl_hydra</url>
+  <depend package="rospy"/>
+  <depend package="pykdl_utils"/>
+  <depend package="urdf_parser_py"/>
+  <depend package="python_orocos_kdl"/>
+
+</package>
+
+
