@@ -8,10 +8,13 @@
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/kdl_hydra</url>
+
   <depend package="rospy"/>
+  <depend package="tf"/>
   <depend package="pykdl_utils"/>
   <depend package="urdf_parser_py"/>
   <depend package="python_orocos_kdl"/>
+  <depend package="razer_hydra"/>
 
 </package>
 
