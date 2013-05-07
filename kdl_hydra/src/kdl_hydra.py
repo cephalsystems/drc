@@ -13,11 +13,47 @@ from pykdl_utils import kdl_parser
 from urdf_parser_py.urdf import URDF
 import PyKDL as kdl
 
+tf = None
+robot_urdf = None
+robot_kdl = None
 
 def hydra_callback(hydra_msg):
-    pass
+    global tf, robot_urdf, robot_kdl
+
+    # Verify that necessary frames and transforms exist
+    if not tf.frameExists('/utorso'):
+        rospy.logwarn('Unable to set hand goals: no torso frame')
+        return
+
+    if not tf.frameExists('/hydra_left'):
+        rospy.logwarn('Unable to set hand goals: no hydra left frame')
+        return
+
+    if not tf.frameExists('/hydra_right'):
+        rospy.logwarn('Unable to set hand goals: no hydra right frame')
+        return
+
+    # Get the current right hand target position
+    try:
+        left_time = tf.getLatestCommonTime("/utorso", "/hydra_left")
+        left_pos, left_quat = tf.lookupTransform("/utorso", "/hydra_left", left_time)
+    except Exception as e:
+        rospy.logwarn('Unable to compute left hand target: %s', str(e))
+
+    # Get the current left hand target position
+    try:
+        right_time = tf.getLatestCommonTime("/utorso", "/hydra_right")
+        right_pos, right_quat = tf.lookupTransform("/utorso", "/hydra_right", right_time)
+    except Exception as e:
+        rospy.logwarn('Unable to compute left hand target: %s', str(e))
+
+    # Compute IK solution to put arm at location
+    # TODO: fill this in
 
 def main():
+    global tf, robot_urdf, robot_kdl
+
+    # Initialize the ROS node
     rospy.init_node('kdl_hydra')
 
     # Create a transform listener
