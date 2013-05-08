@@ -106,7 +106,7 @@ def create_IK_solvers():
         left_ik = kdl.ChainIkSolverPos_NR_JL(left_chain, 
                                              left_min, left_max, 
                                              left_fk, left_ikv, 
-                                             100, 1e-6)
+                                             1000, 1e-6)
 
         # Initialize IK for right arm
         right_fk = kdl.ChainFkSolverPos_recursive(right_chain)
@@ -114,7 +114,7 @@ def create_IK_solvers():
         right_ik = kdl.ChainIkSolverPos_NR_JL(right_chain, 
                                               right_min, right_max,
                                               right_fk, right_ikv, 
-                                              100, 1e-6)
+                                              1000, 1e-6)
     
 
 def atlas_callback(atlas_msg):
@@ -200,7 +200,8 @@ def hydra_callback(hydra_msg):
             # Compute the relative transform to the hand
             left_time = tf.getLatestCommonTime("/utorso", "/hydra_left")
             left_pos, left_quat = tf.lookupTransform("/utorso", "/hydra_left", left_time)
-            left_target = kdl.Frame(kdl.Rotation.Quaternion(left_quat[0], left_quat[1], left_quat[2], left_quat[3]),
+            left_target = kdl.Frame(kdl.Rotation.Quaternion(left_quat[0], left_quat[1], left_quat[2], left_quat[3]) *
+                                    kdl.Rotation.RotZ(-1.5707), 
                                     kdl.Vector(left_pos[0], left_pos[1], left_pos[2]))
                                     
             
@@ -213,13 +214,6 @@ def hydra_callback(hydra_msg):
                 else:
                     left_desired = left_goal
 
-            # Fill in left command for atlas
-            for idx in range(0, left_chain.getNrOfJoints()):
-                name = left_chain.getSegment(idx).getJoint().getName()
-                joint_idx = atlasJointNames.index(name)
-                command.position[joint_idx] = left_desired[idx]
-                command.k_effort[joint_idx] = 255
-
         except Exception as e:
             rospy.logwarn('Left hand failed: %s', str(e))
 
@@ -228,7 +222,8 @@ def hydra_callback(hydra_msg):
             # Compute the relative transform to the hand
             right_time = tf.getLatestCommonTime("/utorso", "/hydra_right")
             right_pos, right_quat = tf.lookupTransform("/utorso", "/hydra_right", right_time)
-            right_target = kdl.Frame(kdl.Rotation.Quaternion(right_quat[0], right_quat[1], right_quat[2], right_quat[3]),
+            right_target = kdl.Frame(kdl.Rotation.Quaternion(right_quat[0], right_quat[1], right_quat[2], right_quat[3]) *
+                                     kdl.Rotation.RotZ(1.5707),
                                      kdl.Vector(right_pos[0], right_pos[1], right_pos[2]))
             
             # Compute IK for desired joint position
@@ -240,15 +235,22 @@ def hydra_callback(hydra_msg):
                 else:
                     right_desired = right_goal
 
-            # Fill in right command for atlas
-            for idx in range(0, right_chain.getNrOfJoints()):
-                name = right_chain.getSegment(idx).getJoint().getName()
-                joint_idx = atlasJointNames.index(name)
-                command.position[joint_idx] = right_desired[idx]
-                command.k_effort[joint_idx] = 255
-
         except Exception as e:
             rospy.logwarn('Right hand failed: %s', str(e))
+
+        # Fill in left command for atlas
+        for idx in range(0, left_chain.getNrOfJoints()):
+            name = left_chain.getSegment(idx).getJoint().getName()
+            joint_idx = atlasJointNames.index(name)
+            command.position[joint_idx] = left_desired[idx]
+            command.k_effort[joint_idx] = 255
+
+        # Fill in right command for atlas
+        for idx in range(0, right_chain.getNrOfJoints()):
+            name = right_chain.getSegment(idx).getJoint().getName()
+            joint_idx = atlasJointNames.index(name)
+            command.position[joint_idx] = right_desired[idx]
+            command.k_effort[joint_idx] = 255
 
         # Send command to atlas!
         pub.publish(command)
