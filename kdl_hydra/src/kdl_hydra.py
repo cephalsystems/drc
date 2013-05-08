@@ -200,14 +200,18 @@ def hydra_callback(hydra_msg):
             # Compute the relative transform to the hand
             left_time = tf.getLatestCommonTime("/utorso", "/hydra_left")
             left_pos, left_quat = tf.lookupTransform("/utorso", "/hydra_left", left_time)
-            left_target = kdl.Frame(kdl.Vector(left_pos[0], left_pos[1], left_pos[2]))
+            left_target = kdl.Frame(kdl.Rotation.Quaternion(left_quat[0], left_quat[1], left_quat[2], left_quat[3]),
+                                    kdl.Vector(left_pos[0], left_pos[1], left_pos[2]))
+                                    
             
             # Compute IK for desired joint position
             if hydra_msg.paddles[0].trigger > 0.9:
-                left_desired = kdl.JntArray(left_q.rows())
-                left_ret = left_ik.CartToJnt(left_q, left_target, left_desired);
+                left_goal = kdl.JntArray(left_q.rows())
+                left_ret = left_ik.CartToJnt(left_q, left_target, left_goal);
                 if (left_ret < 0):
                     raise Exception('Left inverse kinematics failed with ' + str(left_ret))
+                else:
+                    left_desired = left_goal
 
             # Fill in left command for atlas
             for idx in range(0, left_chain.getNrOfJoints()):
@@ -224,14 +228,17 @@ def hydra_callback(hydra_msg):
             # Compute the relative transform to the hand
             right_time = tf.getLatestCommonTime("/utorso", "/hydra_right")
             right_pos, right_quat = tf.lookupTransform("/utorso", "/hydra_right", right_time)
-            right_target = kdl.Frame(kdl.Vector(right_pos[0], right_pos[1], right_pos[2]))
+            right_target = kdl.Frame(kdl.Rotation.Quaternion(right_quat[0], right_quat[1], right_quat[2], right_quat[3]),
+                                     kdl.Vector(right_pos[0], right_pos[1], right_pos[2]))
             
             # Compute IK for desired joint position
             if hydra_msg.paddles[1].trigger > 0.9:
-                right_desired = kdl.JntArray(right_q.rows())
-                right_ret = right_ik.CartToJnt(right_q, right_target, right_desired);
+                right_goal = kdl.JntArray(right_q.rows())
+                right_ret = right_ik.CartToJnt(right_q, right_target, right_goal);
                 if (right_ret < 0):
                     raise Exception('Right inverse kinematics failed with ' + str(right_ret))
+                else:
+                    right_desired = right_goal
 
             # Fill in right command for atlas
             for idx in range(0, right_chain.getNrOfJoints()):
