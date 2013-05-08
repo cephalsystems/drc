@@ -171,11 +171,11 @@ def hydra_callback(hydra_msg):
         rospy.logwarn('Unable to set hand goals: no torso frame')
         return
 
-    if not tf.frameExists('/hydra_left'):
+    if not tf.frameExists('/arms/hydra_left'):
         rospy.logwarn('Unable to set hand goals: no hydra left frame')
         return
 
-    if not tf.frameExists('/hydra_right'):
+    if not tf.frameExists('/arms/hydra_right'):
         rospy.logwarn('Unable to set hand goals: no hydra right frame')
         return
     
@@ -198,8 +198,8 @@ def hydra_callback(hydra_msg):
         # Set the current left hand target position
         try:
             # Compute the relative transform to the hand
-            left_time = tf.getLatestCommonTime("/utorso", "/hydra_left")
-            left_pos, left_quat = tf.lookupTransform("/utorso", "/hydra_left", left_time)
+            left_time = tf.getLatestCommonTime("/utorso", "/arms/hydra_left")
+            left_pos, left_quat = tf.lookupTransform("/utorso", "/arms/hydra_left", left_time)
             left_target = kdl.Frame(kdl.Rotation.Quaternion(left_quat[0], left_quat[1], left_quat[2], left_quat[3]) *
                                     kdl.Rotation.RotZ(-1.5707), 
                                     kdl.Vector(left_pos[0], left_pos[1], left_pos[2]))
@@ -220,8 +220,8 @@ def hydra_callback(hydra_msg):
         # Set the current right hand target position
         try:
             # Compute the relative transform to the hand
-            right_time = tf.getLatestCommonTime("/utorso", "/hydra_right")
-            right_pos, right_quat = tf.lookupTransform("/utorso", "/hydra_right", right_time)
+            right_time = tf.getLatestCommonTime("/utorso", "/arms/hydra_right")
+            right_pos, right_quat = tf.lookupTransform("/utorso", "/arms/hydra_right", right_time)
             right_target = kdl.Frame(kdl.Rotation.Quaternion(right_quat[0], right_quat[1], right_quat[2], right_quat[3]) *
                                      kdl.Rotation.RotZ(1.5707),
                                      kdl.Vector(right_pos[0], right_pos[1], right_pos[2]))
@@ -280,7 +280,7 @@ def main():
     create_IK_solvers()
 
     # Subscribe to hydra and atlas updates
-    rospy.Subscriber("/hydra_calib", Hydra, hydra_callback)
+    rospy.Subscriber("/arms/hydra_calib", Hydra, hydra_callback)
     rospy.Subscriber("/atlas/joint_states", JointState, atlas_callback)
 
     # Publish Atlas commands
