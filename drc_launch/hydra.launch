@@ -1,14 +1,18 @@
 <launch>
   <arg name="device" default="/dev/hydra" />
-  <arg name="tf" default="true" />
+  <arg name="tf" default="false" />
   <arg name="ms" default="10" />
   <arg name="lambda" default="0.5" />
+  <arg name="tf_prefix" default="" />
 
   <node pkg="razer_hydra" type="driver" name="razer_hydra_driver" output="screen" >
-    <param name="device"        type="string" value="$(arg device)" />
-    <param name="publish_tf"    type="bool"   value="$(arg tf)" />
-    <param name="polling_ms"    type="int"    value="$(arg ms)" />
-    <param name="lambda_filter" type="double" value="$(arg lambda)" />
+    <param name="device"         type="string" value="$(arg device)" />
+    <param name="publish_tf"     type="bool"   value="$(arg tf)" />
+    <param name="polling_ms"     type="int"    value="$(arg ms)" />
+    <param name="lambda_filter"  type="double" value="$(arg lambda)" />
+    <param name="tf_frame_base"  type="string" value="$(arg tf_prefix)/hydra_base" />
+    <param name="tf_frame_left"  type="string" value="$(arg tf_prefix)/hydra_left" />
+    <param name="tf_frame_right" type="string" value="$(arg tf_prefix)/hydra_right" />
   </node>
 
 </launch>

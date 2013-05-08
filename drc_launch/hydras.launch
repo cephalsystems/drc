@@ -1,0 +1,19 @@
+<launch>
+
+  <group ns="legs">
+    <include file="$(find drc_launch)/hydra.launch">
+      <arg name="device" value="/dev/hydra5" />
+      <arg name="tf" value="true" />
+      <arg name="tf_prefix" value="legs" />
+    </include>
+  </group>
+
+  <group ns="arms">
+    <include file="$(find drc_launch)/hydra.launch">
+      <arg name="device" value="/dev/hydra3" />
+      <arg name="tf" value="true" />
+      <arg name="tf_prefix" value="arms" /> 
+    </include>
+  </group>
+
+</launch>
