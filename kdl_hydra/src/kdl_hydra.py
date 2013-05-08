@@ -50,6 +50,9 @@ right_chain = None
 left_q = None
 right_q = None
 
+left_desired = None
+right_desired = None
+
 lock = threading.Lock()
 pub = None
 
@@ -81,20 +84,43 @@ def create_IK_solvers():
         left_chain = robot_kdl.getChain('utorso', 'l_hand')
         right_chain = robot_kdl.getChain('utorso', 'r_hand')
 
+        # Define the left joint limits from the URDF
+        left_min = kdl.JntArray(left_chain.getNrOfJoints())
+        left_max = kdl.JntArray(left_chain.getNrOfJoints())
+        for idx in xrange(0, left_chain.getNrOfJoints()):
+            name = left_chain.getSegment(idx).getJoint().getName()
+            left_min[idx] = robot_urdf.joints[name].limits.lower
+            left_max[idx] = robot_urdf.joints[name].limits.upper
+            
+        # Define the right joint limits from the URDF
+        right_min = kdl.JntArray(right_chain.getNrOfJoints())
+        right_max = kdl.JntArray(right_chain.getNrOfJoints())
+        for idx in xrange(0, right_chain.getNrOfJoints()):
+            name = right_chain.getSegment(idx).getJoint().getName()
+            right_min[idx] = robot_urdf.joints[name].limits.lower
+            right_max[idx] = robot_urdf.joints[name].limits.upper
+
         # Initialize IK for left arm
         left_fk = kdl.ChainFkSolverPos_recursive(left_chain)
         left_ikv = kdl.ChainIkSolverVel_pinv(left_chain)
-        left_ik = kdl.ChainIkSolverPos_NR(left_chain, left_fk, left_ikv, 100, 1e-6)
+        left_ik = kdl.ChainIkSolverPos_NR_JL(left_chain, 
+                                             left_min, left_max, 
+                                             left_fk, left_ikv, 
+                                             100, 1e-6)
 
         # Initialize IK for right arm
         right_fk = kdl.ChainFkSolverPos_recursive(right_chain)
         right_ikv = kdl.ChainIkSolverVel_pinv(right_chain)
-        right_ik = kdl.ChainIkSolverPos_NR(right_chain, right_fk, right_ikv, 100, 1e-6)
+        right_ik = kdl.ChainIkSolverPos_NR_JL(right_chain, 
+                                              right_min, right_max,
+                                              right_fk, right_ikv, 
+                                              100, 1e-6)
     
 
 def atlas_callback(atlas_msg):
     global left_chain, right_chain
     global left_q, right_q
+    global left_desired, right_desired
 
     with lock:
 
@@ -114,6 +140,8 @@ def atlas_callback(atlas_msg):
             
         # Update global state 
         left_q = q
+        if not left_desired:
+            left_desired = left_q
 
         q = kdl.JntArray(right_chain.getNrOfJoints())
         for chain_idx in xrange(0, right_chain.getNrOfJoints()):
@@ -127,12 +155,14 @@ def atlas_callback(atlas_msg):
 
         # Update global state 
         right_q = q
-
+        if not right_desired:
+            right_desired = right_q
 
 def hydra_callback(hydra_msg):
     global tf, robot_urdf, robot_kdl
     global left_ik, right_ik
     global left_q, right_q
+    global left_desired, right_desired
     global kp, ki, kd
     global pub
 
@@ -173,18 +203,18 @@ def hydra_callback(hydra_msg):
             left_target = kdl.Frame(kdl.Vector(left_pos[0], left_pos[1], left_pos[2]))
             
             # Compute IK for desired joint position
-            left_desired = kdl.JntArray(left_q.rows())
-            left_ret = left_ik.CartToJnt(left_q, left_target, left_desired);
-            if (left_ret < 0):
-                raise Exception('Left inverse kinematics failed with ' + str(left_ret))
+            if hydra_msg.paddles[0].trigger > 0.9:
+                left_desired = kdl.JntArray(left_q.rows())
+                left_ret = left_ik.CartToJnt(left_q, left_target, left_desired);
+                if (left_ret < 0):
+                    raise Exception('Left inverse kinematics failed with ' + str(left_ret))
 
             # Fill in left command for atlas
-            if hydra_msg.paddles[0].trigger > 0.9:
-                for idx in range(0, left_chain.getNrOfJoints()):
-                    name = left_chain.getSegment(idx).getJoint().getName()
-                    joint_idx = atlasJointNames.index(name)
-                    command.position[joint_idx] = left_desired[idx]
-                    command.k_effort[joint_idx] = 25
+            for idx in range(0, left_chain.getNrOfJoints()):
+                name = left_chain.getSegment(idx).getJoint().getName()
+                joint_idx = atlasJointNames.index(name)
+                command.position[joint_idx] = left_desired[idx]
+                command.k_effort[joint_idx] = 255
 
         except Exception as e:
             rospy.logwarn('Left hand failed: %s', str(e))
@@ -197,18 +227,18 @@ def hydra_callback(hydra_msg):
             right_target = kdl.Frame(kdl.Vector(right_pos[0], right_pos[1], right_pos[2]))
             
             # Compute IK for desired joint position
-            right_desired = kdl.JntArray(right_q.rows())
-            right_ret = right_ik.CartToJnt(right_q, right_target, right_desired);
-            if (right_ret < 0):
-                raise Exception('Right inverse kinematics failed with ' + str(right_ret))
+            if hydra_msg.paddles[1].trigger > 0.9:
+                right_desired = kdl.JntArray(right_q.rows())
+                right_ret = right_ik.CartToJnt(right_q, right_target, right_desired);
+                if (right_ret < 0):
+                    raise Exception('Right inverse kinematics failed with ' + str(right_ret))
 
             # Fill in right command for atlas
-            if hydra_msg.paddles[1].trigger > 0.9:
-                for idx in range(0, right_chain.getNrOfJoints()):
-                    name = right_chain.getSegment(idx).getJoint().getName()
-                    joint_idx = atlasJointNames.index(name)
-                    command.position[joint_idx] = right_desired[idx]
-                    command.k_effort[joint_idx] = 25
+            for idx in range(0, right_chain.getNrOfJoints()):
+                name = right_chain.getSegment(idx).getJoint().getName()
+                joint_idx = atlasJointNames.index(name)
+                command.position[joint_idx] = right_desired[idx]
+                command.k_effort[joint_idx] = 255
 
         except Exception as e:
             rospy.logwarn('Right hand failed: %s', str(e))
