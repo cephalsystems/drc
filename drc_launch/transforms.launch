@@ -1,4 +1,4 @@
 <launch>
   <node pkg="tf" type="static_transform_publisher" name="torso_hydra" 
-   args="1 0 0 0 0 0 /utorso /hydra_base 100" />
+   args="0 0 -1 0 0 0 /utorso /hydra_base 100" />
 </launch>

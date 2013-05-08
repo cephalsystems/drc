@@ -11,12 +11,20 @@ from tf import TransformListener
 from pykdl_utils import kdl_parser
 from urdf_parser_py.urdf import URDF
 import PyKDL as kdl
+from numpy import zeros
 
 from razer_hydra.msg import Hydra
 from sensor_msgs.msg import JointState
-from osrf_msgs.msg import JointCommands
+from atlas_msgs.msg import AtlasCommand
 
 import threading
+
+atlasJointNames = [
+  'back_lbz', 'back_mby', 'back_ubx', 'neck_ay',
+  'l_leg_uhz', 'l_leg_mhx', 'l_leg_lhy', 'l_leg_kny', 'l_leg_uay', 'l_leg_lax',
+  'r_leg_uhz', 'r_leg_mhx', 'r_leg_lhy', 'r_leg_kny', 'r_leg_uay', 'r_leg_lax',
+  'l_arm_usy', 'l_arm_shx', 'l_arm_ely', 'l_arm_elx', 'l_arm_uwy', 'l_arm_mwx',
+  'r_arm_usy', 'r_arm_shx', 'r_arm_ely', 'r_arm_elx', 'r_arm_uwy', 'r_arm_mwx']
 
 kp = {}
 ki = {}
@@ -144,7 +152,18 @@ def hydra_callback(hydra_msg):
     with lock:
 
         # Create joint command for atlas
-        command = JointCommands()
+        n = len(atlasJointNames)
+        command = AtlasCommand()
+        command.position     = [0] * n
+        command.velocity     = [0] * n
+        command.effort       = [0] * n
+        command.kp_position  = [ kp.get(name, 0.0) for name in atlasJointNames ]
+        command.ki_position  = [ ki.get(name, 0.0) for name in atlasJointNames ]
+        command.kd_position  = [ kd.get(name, 0.0) for name in atlasJointNames ]
+        command.kp_velocity  = [0] * n
+        command.i_effort_min = [ i_clamp.get(name, 0.0) for name in atlasJointNames ]
+        command.i_effort_max = [ i_clamp.get(name, 0.0) for name in atlasJointNames ]
+        command.k_effort     = [0] * n
 
         # Set the current left hand target position
         try:
@@ -160,18 +179,12 @@ def hydra_callback(hydra_msg):
                 raise Exception('Left inverse kinematics failed with ' + str(left_ret))
 
             # Fill in left command for atlas
-            for idx in range(0, left_chain.getNrOfJoints()):
-                name = left_chain.getSegment(idx).getJoint().getName()
-                command.name.append(name)
-                command.position.append(left_desired[idx])
-                command.velocity.append(0.0)
-                command.effort.append(0.0)
-                command.kp_position.append(kp[name])
-                command.ki_position.append(ki[name])
-                command.kd_position.append(kd[name])
-                command.kp_velocity.append(0.0)
-                command.i_effort_min.append(-i_clamp[name])
-                command.i_effort_max.append(i_clamp[name])
+            if hydra_msg.paddles[0].trigger > 0.9:
+                for idx in range(0, left_chain.getNrOfJoints()):
+                    name = left_chain.getSegment(idx).getJoint().getName()
+                    joint_idx = atlasJointNames.index(name)
+                    command.position[joint_idx] = left_desired[idx]
+                    command.k_effort[joint_idx] = 25
 
         except Exception as e:
             rospy.logwarn('Left hand failed: %s', str(e))
@@ -190,18 +203,12 @@ def hydra_callback(hydra_msg):
                 raise Exception('Right inverse kinematics failed with ' + str(right_ret))
 
             # Fill in right command for atlas
-            for idx in range(0, right_chain.getNrOfJoints()):
-                name = right_chain.getSegment(idx).getJoint().getName()
-                command.name.append(name)
-                command.position.append(right_desired[idx])
-                command.velocity.append(0.0)
-                command.effort.append(0.0)
-                command.kp_position.append(kp[name])
-                command.ki_position.append(ki[name])
-                command.kd_position.append(kd[name])
-                command.kp_velocity.append(0.0)
-                command.i_effort_min.append(-i_clamp[name])
-                command.i_effort_max.append(i_clamp[name])
+            if hydra_msg.paddles[1].trigger > 0.9:
+                for idx in range(0, right_chain.getNrOfJoints()):
+                    name = right_chain.getSegment(idx).getJoint().getName()
+                    joint_idx = atlasJointNames.index(name)
+                    command.position[joint_idx] = right_desired[idx]
+                    command.k_effort[joint_idx] = 25
 
         except Exception as e:
             rospy.logwarn('Right hand failed: %s', str(e))
@@ -238,7 +245,7 @@ def main():
     rospy.Subscriber("/atlas/joint_states", JointState, atlas_callback)
 
     # Publish Atlas commands
-    pub = rospy.Publisher('/atlas/joint_commands', JointCommands)
+    pub = rospy.Publisher('/atlas/atlas_command', AtlasCommand)
 
     # Start main event handling loop
     rospy.loginfo('Started kdl_hydra node...')
