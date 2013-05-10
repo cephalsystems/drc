@@ -102,27 +102,21 @@ class TeleopLimb:
 
 
     def solve(self, tf_target):
-        try:
-            with _lock:
-                # Compute the relative transform to the end link
-                time = self._tf.getLatestCommonTime("/" + self._name_chain[0], tf_target)
-                pos, quat = self._tf.lookupTransform("/" + self._name_chain[0], tf_target, time)
-                x_desired = kdl.Frame(kdl.Rotation.Quaternion(_quat[0], _quat[1], _quat[2], _quat[3]),
-                                      kdl.Vector(_pos[0], _pos[1], _pos[2]))
+        with _lock:
+            # Compute the relative transform to the end link
+            time = self._tf.getLatestCommonTime("/" + self._name_chain[0], tf_target)
+            pos, quat = self._tf.lookupTransform("/" + self._name_chain[0], tf_target, time)
+            x_desired = kdl.Frame(kdl.Rotation.Quaternion(_quat[0], _quat[1], _quat[2], _quat[3]),
+                                  kdl.Vector(_pos[0], _pos[1], _pos[2]))
                 
-                # Compute IK for desired joint positions
-                q_desired = kdl.JntArray(self._q_desired)
-                success = self._ik.CartToJnt(self_q.current, x_desired, q_desired)
-                if (success >= 0):
-                    self._x_desired = x_desired
-                    self._q_desired = q_desired
-                else:
-                    raise Exception('No IK for %s [%d]'
-                                    .format(self._name_chain[-1], success))
-
-        except Exception as e:
-            rospy.logwarn('IK failed: %s'.format(e))
-        
+            # Compute IK for desired joint positions
+            q_desired = kdl.JntArray(self._q_desired)
+            success = self._ik.CartToJnt(self_q.current, x_desired, q_desired)
+            if (success >= 0):
+                self._x_desired = x_desired
+                self._q_desired = q_desired
+            else:
+                raise Exception('IK failed [%d]'.format(success))
 
     def populate(self, atlas_command):
         with _lock:
