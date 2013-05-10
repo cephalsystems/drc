@@ -124,9 +124,9 @@ def main():
     pub = rospy.Publisher('/atlas/atlas_command', AtlasCommand)
 
     # Subscribe to hydra and atlas updates
-    rospy.Subscriber("/arms/hydra_calib", Hydra, hydra_arms_callback)
-    rospy.Subscriber("/legs/hydra_calib", Hydra, hydra_legs_callback)
-    rospy.Subscriber("/atlas/atlas_state", AtlasState, atlas_callback)
+    rospy.Subscriber("/arms/hydra_calib", Hydra, hydra_arms_callback, queue_size = 1)
+    rospy.Subscriber("/legs/hydra_calib", Hydra, hydra_legs_callback, queue_size = 1)
+    rospy.Subscriber("/atlas/atlas_state", AtlasState, atlas_callback, queue_size = 1)
 
     # Start main event handling loop
     rospy.loginfo('Started kdl_hydra node...')

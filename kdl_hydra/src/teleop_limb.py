@@ -121,12 +121,15 @@ class TeleopLimb:
                 self._x_desired = x_desired
                 self._q_desired = q_desired
             else:
-                raise Exception('IK failed [%d]'.format(success))
+                raise Exception('IK failed [{0}]'.format(success))
 
     def populate(self, atlas_command):
         with self._lock:
             # Fill in relevant components of command to atlas
             for idx in xrange(0, self._num_joints):
                 atlas_command.position[self._idx_chain[idx]] = self._q_desired[idx]
+                atlas_command.kp_position[self._idx_chain[idx]] = self._kp[idx]
+                atlas_command.ki_position[self._idx_chain[idx]] = self._ki[idx]
+                atlas_command.kd_position[self._idx_chain[idx]] = self._kd[idx]
                 atlas_command.k_effort[self._idx_chain[idx]] = 255
 
