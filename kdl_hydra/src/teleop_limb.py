@@ -12,7 +12,7 @@ from tf import TransformListener
 from pykdl_utils import kdl_parser
 from urdf_parser_py.urdf import URDF
 import PyKDL as kdl
-from numpy import zeros
+from numpy import zeros, diag
 
 from atlas_msgs.msg import AtlasState
 from atlas_msgs.msg import AtlasCommand
@@ -76,6 +76,8 @@ class TeleopLimb:
         # Initialize IK for this manipulator
         self._fk = kdl.ChainFkSolverPos_recursive(self._kdl_chain)
         self._ikv = kdl.ChainIkSolverVel_pinv(self._kdl_chain)
+        #self._ikv = kdl.ChainIkSolverVel_wdls(self._kdl_chain)
+        #self._ikv.setWeightTS(diag([1.0, 0.0, 0.0, 0.0, 0.0, 0.0]).tolist())
         self._ik = kdl.ChainIkSolverPos_NR_JL(self._kdl_chain,
                                          joint_min, joint_max,
                                          self._fk, self._ikv,
