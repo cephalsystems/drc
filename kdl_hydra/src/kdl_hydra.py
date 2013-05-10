@@ -45,7 +45,7 @@ def hydra_arms_callback(hydra_msg):
     # Left arm update
     if hydra_msg.paddles[0].trigger > 0.9:
         try:
-            limb['left_arm'].solve('/arms/hydra_left')
+            limb['left_arm'].solve('/arms/left')
             limb.populate(command)
         except Exception as e:
             rospy.logwarn('Left arm failed: %s', str(e))
@@ -53,7 +53,7 @@ def hydra_arms_callback(hydra_msg):
     # Right arm update
     if hydra_msg.paddles[1].trigger > 0.9:
         try:
-            limb['right_arm'].solve('/arms/hydra_right')
+            limb['right_arm'].solve('/arms/right')
             limb.populate(command)
         except Exception as e:
             rospy.logwarn('Right arm failed: %s', str(e))
@@ -65,7 +65,7 @@ def hydra_legs_callback(hydra_msg):
     # Left leg update
     if hydra_msg.paddles[0].trigger > 0.9:
         try:
-            limb['left_leg'].solve('/legs/hydra_left')
+            limb['left_leg'].solve('/legs/left')
             limb.populate(command)
         except Exception as e:
             rospy.logwarn('Left leg failed: %s', str(e))
@@ -73,7 +73,7 @@ def hydra_legs_callback(hydra_msg):
     # Right leg update
     if hydra_msg.paddles[1].trigger > 0.9:
         try:
-            limb['right_leg'].solve('/legs/hydra_right')
+            limb['right_leg'].solve('/legs/right')
             limb.populate(command)
         except Exception as e:
             rospy.logwarn('Right leg failed: %s', str(e))
