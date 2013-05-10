@@ -37,6 +37,7 @@ class TeleopLimb:
     
     _tf = None
 
+    _tf_root = None
     _kdl_chain = None
     _urdf_chain = None
     _name_chain = None
@@ -53,8 +54,9 @@ class TeleopLimb:
 
     def __init__(self, tf, robot_urdf, robot_kdl, start_link, end_link):
 
-        # Store t transform filter for later
+        # Store transform filter and root frame for later
         self._tf = tf
+        self._tf_root = '/' + start_link
 
         # Define manipulator chain from KDL tree
         self._kdl_chain = robot_kdl.getChain(start_link, end_link)
@@ -107,14 +109,14 @@ class TeleopLimb:
     def solve(self, tf_target):
         with self._lock:
             # Compute the relative transform to the end link
-            time = self._tf.getLatestCommonTime("/" + self._name_chain[0], tf_target)
-            pos, quat = self._tf.lookupTransform("/" + self._name_chain[0], tf_target, time)
-            x_desired = kdl.Frame(kdl.Rotation.Quaternion(_quat[0], _quat[1], _quat[2], _quat[3]),
-                                  kdl.Vector(_pos[0], _pos[1], _pos[2]))
+            time = self._tf.getLatestCommonTime(self._tf_root, tf_target)
+            pos, quat = self._tf.lookupTransform(self._tf_root, tf_target, time)
+            x_desired = kdl.Frame(kdl.Rotation.Quaternion(quat[0], quat[1], quat[2], quat[3]),
+                                  kdl.Vector(pos[0], pos[1], pos[2]))
                 
             # Compute IK for desired joint positions
             q_desired = kdl.JntArray(self._q_desired)
-            success = self._ik.CartToJnt(self_q.current, x_desired, q_desired)
+            success = self._ik.CartToJnt(self._q_current, x_desired, q_desired)
             if (success >= 0):
                 self._x_desired = x_desired
                 self._q_desired = q_desired

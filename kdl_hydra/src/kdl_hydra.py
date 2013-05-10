@@ -22,7 +22,17 @@ import threading
 
 pub = None
 limbs = {}
+
+n = 28
 command = AtlasCommand()
+command.position    = [0] * n
+command.velocity    = [0] * n
+command.effort      = [0] * n
+command.kp_position = [0] * n
+command.ki_position = [0] * n
+command.kd_position = [0] * n
+command.kp_velocity = [0] * n
+command.k_effort    = [0] * n
 
 
 def atlas_callback(atlas_msg):
@@ -46,7 +56,7 @@ def hydra_arms_callback(hydra_msg):
     if hydra_msg.paddles[0].trigger > 0.9:
         try:
             limbs['left_arm'].solve('/arms/left')
-            limbs.populate(command)
+            limbs['left_arm'].populate(command)
         except Exception as e:
             rospy.logwarn('Left arm failed: %s', str(e))
 
@@ -54,9 +64,10 @@ def hydra_arms_callback(hydra_msg):
     if hydra_msg.paddles[1].trigger > 0.9:
         try:
             limbs['right_arm'].solve('/arms/right')
-            limbs.populate(command)
+            limbs['right_arm'].populate(command)
         except Exception as e:
             rospy.logwarn('Right arm failed: %s', str(e))
+
 
 def hydra_legs_callback(hydra_msg):
     global limbs, frames
@@ -66,7 +77,7 @@ def hydra_legs_callback(hydra_msg):
     if hydra_msg.paddles[0].trigger > 0.9:
         try:
             limbs['left_leg'].solve('/legs/left')
-            limbs.populate(command)
+            limbs['left_leg'].populate(command)
         except Exception as e:
             rospy.logwarn('Left leg failed: %s', str(e))
 
@@ -74,7 +85,7 @@ def hydra_legs_callback(hydra_msg):
     if hydra_msg.paddles[1].trigger > 0.9:
         try:
             limbs['right_leg'].solve('/legs/right')
-            limbs.populate(command)
+            limbs['right_leg'].populate(command)
         except Exception as e:
             rospy.logwarn('Right leg failed: %s', str(e))
 
