@@ -22,24 +22,7 @@ import threading
 
 pub = None
 limbs = {}
-command = None
-
-def init_command():
-    global command
-
-    # Create empty Atlas command
-    command = AtlasCommand()
-    n = len(command.position)
-    command.position     = [0] * n
-    command.velocity     = [0] * n
-    command.effort       = [0] * n
-    command.kp_position  = [0] * n
-    command.ki_position  = [0] * n
-    command.kd_position  = [0] * n
-    command.kp_velocity  = [0] * n
-    command.i_effort_min = [0] * n
-    command.i_effort_max = [0] * n
-    command.k_effort     = [0] * n
+command = AtlasCommand()
 
 
 def atlas_callback(atlas_msg):
@@ -48,7 +31,7 @@ def atlas_callback(atlas_msg):
     global command
 
     # Update joint values in limbs
-    for (name, limb) in limbs:
+    for limb in limbs.values():
         limb.update(atlas_msg)
         
     # Send out current atlas command
@@ -97,7 +80,8 @@ def hydra_legs_callback(hydra_msg):
 
 
 def main():
-    global tf, robot_urdf, robot_kdl, limbs
+    global tf
+    global command, limbs
     global pub
 
     # Initialize the ROS node
@@ -107,7 +91,7 @@ def main():
     tf = TransformListener()
     
     # Retrieve raw robot parameters from rosmaster
-    robot_string = rospy.get_param("robot_description")
+    robot_string = rospy.get_param("robot_description", None)
     if not robot_string:
         raise Exception('Robot model not specified')
 
@@ -119,19 +103,19 @@ def main():
 
     # Create limbs!
     limbs = {
-        'left_arm': TelopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'l_hand'),
-        'right_arm': TelopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'r_hand'),
-        'left_leg': TelopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'l_foot'),
-        'right_leg': TelopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'r_foot'),
+        'left_arm': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'l_hand'),
+        'right_arm': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'r_hand'),
+        'left_leg': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'l_foot'),
+        'right_leg': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'r_foot'),
         }
-    
+
+    # Publish Atlas commands
+    pub = rospy.Publisher('/atlas/atlas_command', AtlasCommand)
+
     # Subscribe to hydra and atlas updates
     rospy.Subscriber("/arms/hydra_calib", Hydra, hydra_arms_callback)
     rospy.Subscriber("/legs/hydra_calib", Hydra, hydra_legs_callback)
     rospy.Subscriber("/atlas/atlas_state", AtlasState, atlas_callback)
-
-    # Publish Atlas commands
-    pub = rospy.Publisher('/atlas/atlas_command', AtlasCommand)
 
     # Start main event handling loop
     rospy.loginfo('Started kdl_hydra node...')

@@ -32,6 +32,7 @@ class TeleopLimb:
 
     _fk = None
     _ik = None
+    _ikv = None
     
     _tf = None
 
@@ -56,7 +57,7 @@ class TeleopLimb:
 
         # Define manipulator chain from KDL tree
         self._kdl_chain = robot_kdl.getChain(start_link, end_link)
-        self._name_chain = [ self._kdl_chain.getSegment(idx).getJoint.getName()
+        self._name_chain = [ self._kdl_chain.getSegment(idx).getJoint().getName()
                              for idx in xrange(0, self._kdl_chain.getNrOfJoints()) ]
         self._idx_chain = [ ATLAS_JOINT_NAMES.index(name) for name in self._name_chain ]
         self._urdf_chain = [ robot_urdf.joints[name] for name in self._name_chain ]
@@ -70,9 +71,9 @@ class TeleopLimb:
             joint_max[idx] = self._urdf_chain[idx].limits.upper
 
         # Initialize IK for this manipulator
-        _fk = kdl.ChainFkSolverPos_recursive(self._kdl_chain)
-        _ikv = kdl.ChainIkSolverVel_pinv(self._kdl_chain)
-        _ik = kdl.ChainIkSolverPos_NR_JL(self._kdl_chain,
+        self._fk = kdl.ChainFkSolverPos_recursive(self._kdl_chain)
+        self._ikv = kdl.ChainIkSolverVel_pinv(self._kdl_chain)
+        self._ik = kdl.ChainIkSolverPos_NR_JL(self._kdl_chain,
                                          joint_min, joint_max,
                                          self._fk, self._ikv,
                                          1000, 1e-6)
@@ -88,21 +89,22 @@ class TeleopLimb:
                           for name in self._name_chain ]
 
     def update(self, atlas_state):
-        with _lock:
-            # Initialize current configurations when we get our first message
+        with self._lock:
+            # Initialize current configuration when we get our first message
             if not self._q_current:
                 self._q_current = kdl.JntArray(self._num_joints)
                 
+            # Populate current configuration from state message
+            for idx in xrange(0, self._num_joints):
+                self._q_current[idx] = atlas_state.position[self._idx_chain[idx]]
+
+            # Initialize desired array to current position if necessary
             if not self._q_desired:
                 self._q_desired = kdl.JntArray(self._q_current)
 
-            # Populate current configuration from state message
-            for idx in _idx_chain:
-                self._q_current = atlas_msg.position[idx]
-
 
     def solve(self, tf_target):
-        with _lock:
+        with self._lock:
             # Compute the relative transform to the end link
             time = self._tf.getLatestCommonTime("/" + self._name_chain[0], tf_target)
             pos, quat = self._tf.lookupTransform("/" + self._name_chain[0], tf_target, time)
@@ -119,9 +121,9 @@ class TeleopLimb:
                 raise Exception('IK failed [%d]'.format(success))
 
     def populate(self, atlas_command):
-        with _lock:
+        with self._lock:
             # Fill in relevant components of command to atlas
-            for idx in range(0, self._num_joints):
+            for idx in xrange(0, self._num_joints):
                 atlas_command.position[self._idx_chain[idx]] = self._q_desired[idx]
                 atlas_command.k_effort[self._idx_chain[idx]] = 255
 
