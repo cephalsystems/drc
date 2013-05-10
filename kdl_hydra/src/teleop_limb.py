@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 #
 # Read from a TF frame and attempt to create an IK setpoint that
@@ -53,7 +54,7 @@ class TeleopLimb:
     def __init__(self, tf, robot_urdf, robot_kdl, start_link, end_link):
 
         # Store t transform filter for later
-        _tf = tf
+        self._tf = tf
 
         # Define manipulator chain from KDL tree
         self._kdl_chain = robot_kdl.getChain(start_link, end_link)
