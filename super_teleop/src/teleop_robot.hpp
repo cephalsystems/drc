@@ -14,4 +14,4 @@ public:
   KDL::Tree kdl;
 };
 
-#endif __TELEOP_ROBOT_HPP__
+#endif /* __TELEOP_ROBOT_HPP__ */
