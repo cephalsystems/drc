@@ -13,8 +13,8 @@
 #include <map>
 #include <boost/foreach.hpp>
 
-tf::TransformBroadcaster br;
-tf::TransformListener tl;
+tf::TransformBroadcaster *tf_out;
+tf::TransformListener *tf_in;
 std::vector<TeleopLimb> limbs;
 std::map<std::string, double> commands;
 
@@ -24,7 +24,7 @@ std::vector<std::string> ATLAS_JOINT_NAMES = {
   "r_leg_uhz", "r_leg_mhx", "r_leg_lhy", "r_leg_kny", "r_leg_uay", "r_leg_lax",
   "l_arm_usy", "l_arm_shx", "l_arm_ely", "l_arm_elx", "l_arm_uwy", "l_arm_mwx",  
   "r_arm_usy", "r_arm_shx", "r_arm_ely", "r_arm_elx", "r_arm_uwy", "r_arm_mwx" 
-  };
+};
 
 void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
 {
@@ -33,7 +33,7 @@ void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
   for (unsigned int i = 0; i < ATLAS_JOINT_NAMES.size(); ++i) {
     joints[ATLAS_JOINT_NAMES[i]] = msg->position[i];
   }
-
+  
   // Update each limb with the new positions
   BOOST_FOREACH(TeleopLimb &limb, limbs) {
     limb.update(joints);
@@ -44,13 +44,12 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
 {
   // Transform and scale hydra poses as necessary
   std::string paddle_tf[] = {"/left", "/right"};
-  for (unsigned int i = 0; i < 2; ++i)
-  {
+  for (unsigned int i = 0; i < 2; ++i) {
     tf::Transform transform;
     tf::transformMsgToTF(msg->paddles[i].transform, transform);
-    br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), 
-					  "/" + limbs[i].startLink(), paddle_tf[i]));
-
+    tf_out->sendTransform(tf::StampedTransform(transform, ros::Time::now(), 
+					       "/" + limbs[i].startLink(), paddle_tf[i]));
+    
     // Add command to arm if trigger is pressed
     if (msg->paddles[i].trigger > 0.9) {
       std::map<std::string, double> cmds = limbs[i].solveEnd(transform);
@@ -69,6 +68,10 @@ int main(int argc, char* argv[])
   // Start up ROS node
   ros::init(argc, argv, "super_teleop");
   ros::NodeHandle nh;
+
+  // Create TF objects
+  tf_in = new tf::TransformListener();
+  tf_out = new tf::TransformBroadcaster(); 
 
   // Create a teleop robot
   TeleopRobot robot(nh);
