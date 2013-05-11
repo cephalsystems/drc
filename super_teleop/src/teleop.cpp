@@ -54,6 +54,7 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
     if (msg->paddles[i].trigger > 0.9) {
       std::map<std::string, double> cmds = limbs[i].solveEnd(transform);
       commands.insert(cmds.begin(), cmds.end());
+      ROS_INFO("Updating %s", paddle_tf[i].c_str());
     }
   }
 }
@@ -82,9 +83,9 @@ int main(int argc, char* argv[])
   ros::Publisher pub = nh.advertise<atlas_msgs::AtlasCommand>("/atlas/atlas_command", 1);
 
   // Subscribe to all the necessary ROS topics
-  nh.subscribe("/atlas/atlas_state", 1, atlasCallback);
-  nh.subscribe("/arms/hydra_calib", 1, hydraCallback);
-  nh.subscribe("/skeleton", 1, skeletonCallback);
+  ros::Subscriber atlas_sub = nh.subscribe("/atlas/atlas_state", 1, atlasCallback);
+  ros::Subscriber hydra_sub = nh.subscribe("/arms/hydra_calib", 1, hydraCallback);
+  ros::Subscriber skel_sub = nh.subscribe("/skeleton", 1, skeletonCallback);
 
   // Create an ATLAS command
   unsigned int n = ATLAS_JOINT_NAMES.size();
