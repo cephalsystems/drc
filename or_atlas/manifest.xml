@@ -1,0 +1,14 @@
+<package>
+  <description brief="or_atlas">
+
+     or_atlas is OpenRave data for the ATLAS robot.
+
+  </description>
+  <author>Cephal Systems</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/or_atlas</url>
+
+</package>
+
+

@@ -1,0 +1,45 @@
+name                       index parents           
+---------------------------------------------------
+pelvis                     0                       
+ltorso                     1     pelvis            
+mtorso                     2     ltorso            
+utorso                     3     mtorso            
+l_clav                     4     utorso            
+l_scap                     5     l_clav            
+l_uarm                     6     l_scap            
+l_larm                     7     l_uarm            
+l_farm                     8     l_larm            
+l_hand                     9     l_farm            
+head                       10    utorso            
+center_bottom_led_frame    11    head              
+center_top_led_frame       12    head              
+head_imu_link              13    head              
+hokuyo_link                14    head              
+head_hokuyo_frame          15    hokuyo_link       
+left_camera_frame          16    head              
+left_camera_optical_frame  17    left_camera_frame 
+left_led_frame             18    head              
+right_camera_frame         19    head              
+right_camera_optical_frame 20    right_camera_frame
+right_led_frame            21    head              
+r_clav                     22    utorso            
+r_scap                     23    r_clav            
+r_uarm                     24    r_scap            
+r_larm                     25    r_uarm            
+r_farm                     26    r_larm            
+r_hand                     27    r_farm            
+imu_link                   28    pelvis            
+l_uglut                    29    pelvis            
+l_lglut                    30    l_uglut           
+l_uleg                     31    l_lglut           
+l_lleg                     32    l_uleg            
+l_talus                    33    l_lleg            
+l_foot                     34    l_talus           
+r_uglut                    35    pelvis            
+r_lglut                    36    r_uglut           
+r_uleg                     37    r_lglut           
+r_lleg                     38    r_uleg            
+r_talus                    39    r_lleg            
+r_foot                     40    r_talus           
+---------------------------------------------------
+name                       index parents           
