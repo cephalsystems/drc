@@ -18,7 +18,7 @@ from atlas_msgs.msg import AtlasState
 from atlas_msgs.msg import AtlasCommand
 
 from teleop_limb import TeleopLimb
-import threading
+import threading, time
 
 pub = None
 limbs = {}
@@ -59,6 +59,8 @@ def hydra_arms_callback(hydra_msg):
             limbs['left_arm'].populate(command)
         except Exception as e:
             rospy.logwarn('Left arm failed: %s', str(e))
+    else:
+        limbs['left_arm'].clear(command)
 
     # Right arm update
     if hydra_msg.paddles[1].trigger > 0.9:
@@ -67,6 +69,8 @@ def hydra_arms_callback(hydra_msg):
             limbs['right_arm'].populate(command)
         except Exception as e:
             rospy.logwarn('Right arm failed: %s', str(e))
+    else:
+        limbs['right_arm'].clear(command)
 
 
 def hydra_legs_callback(hydra_msg):
@@ -80,6 +84,8 @@ def hydra_legs_callback(hydra_msg):
             limbs['left_leg'].populate(command)
         except Exception as e:
             rospy.logwarn('Left leg failed: %s', str(e))
+    else:
+        limbs['left_leg'].clear(command)
 
     # Right leg update
     if hydra_msg.paddles[1].trigger > 0.9:
@@ -88,7 +94,8 @@ def hydra_legs_callback(hydra_msg):
             limbs['right_leg'].populate(command)
         except Exception as e:
             rospy.logwarn('Right leg failed: %s', str(e))
-
+    else:
+        limbs['right_leg'].clear(command)
 
 def main():
     global tf
@@ -116,8 +123,8 @@ def main():
     limbs = {
         'left_arm': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'l_hand'),
         'right_arm': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'r_hand'),
-        'left_leg': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'l_foot'),
-        'right_leg': TeleopLimb(tf, robot_urdf, robot_kdl, 'utorso', 'r_foot'),
+        'left_leg': TeleopLimb(tf, robot_urdf, robot_kdl, 'pelvis', 'l_foot'),
+        'right_leg': TeleopLimb(tf, robot_urdf, robot_kdl, 'pelvis', 'r_foot'),
         }
 
     # Publish Atlas commands
@@ -130,7 +137,9 @@ def main():
 
     # Start main event handling loop
     rospy.loginfo('Started kdl_hydra node...')
-    rospy.spin()
+    r = rospy.Rate(10) # 10hz
+    while not rospy.is_shutdown():
+        r.sleep()
     rospy.loginfo('Stopping kdl_hydra node...')
 
 

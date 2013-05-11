@@ -28,8 +28,7 @@ ATLAS_JOINT_NAMES = [ 'back_lbz', 'back_mby', 'back_ubx', 'neck_ay',
 
 class TeleopLimb:
     _q_current = None
-    _q_desired = None
-    _x_desired = None
+    _q_desired_vel = None
 
     _fk = None
     _ik = None
@@ -65,6 +64,9 @@ class TeleopLimb:
         self._idx_chain = [ ATLAS_JOINT_NAMES.index(name) for name in self._name_chain ]
         self._urdf_chain = [ robot_urdf.joints[name] for name in self._name_chain ]
         self._num_joints = len(self._urdf_chain)
+
+        self._q_current = kdl.JntArray(self._num_joints)
+        self._q_desired_vel = kdl.JntArray(self._num_joints)
         
         # Define the joint limits from the URDF 
         joint_min = kdl.JntArray(self._num_joints)
@@ -81,10 +83,10 @@ class TeleopLimb:
         self._ik = kdl.ChainIkSolverPos_NR_JL(self._kdl_chain,
                                          joint_min, joint_max,
                                          self._fk, self._ikv,
-                                         1000, 1e-6)
+                                         1000, 1e-3)
 
         # Load each gain into dictionary
-        self._kp = [ rospy.get_param('atlas_controller/gains/' + name + '/p') 
+        self._kp = [ rospy.get_param('atlas_controller/gains/' + name + '/p')
                      for name in self._name_chain ] 
         self._ki = [ rospy.get_param('atlas_controller/gains/' + name + '/i') 
                      for name in self._name_chain ] 
@@ -103,25 +105,33 @@ class TeleopLimb:
             for idx in xrange(0, self._num_joints):
                 self._q_current[idx] = atlas_state.position[self._idx_chain[idx]]
 
-            # Initialize desired array to current position if necessary
-            if not self._q_desired:
-                self._q_desired = kdl.JntArray(self._q_current)
-
 
     def solve(self, tf_target):
         with self._lock:
             # Compute the relative transform to the end link
-            time = self._tf.getLatestCommonTime(self._tf_root, tf_target)
-            pos, quat = self._tf.lookupTransform(self._tf_root, tf_target, time)
+            try:
+                pos, quat = self._tf.lookupTransform(self._tf_root, tf_target, rospy.Time(0))
+            except Exception as e:
+                raise Exception("Transform failed from {0} {1}".format(self._tf_root, tf_target))
+
             x_desired = kdl.Frame(kdl.Rotation.Quaternion(quat[0], quat[1], quat[2], quat[3]),
                                   kdl.Vector(pos[0], pos[1], pos[2]))
                 
+            # Compute twist to desired end point
+            x_actual = kdl.Frame()
+            self._fk.JntToCart(self._q_current, x_actual)
+            x_vel = kdl.Twist((x_desired.p - x_actual.p), kdl.Vector())
+
             # Compute IK for desired joint positions
-            q_desired = kdl.JntArray(self._q_desired)
-            success = self._ik.CartToJnt(self._q_current, x_desired, q_desired)
+            q_desired_vel = kdl.JntArray(self._q_desired_vel)
+            success = self._ikv.CartToJnt(self._q_current, x_vel, q_desired_vel)
             if (success >= 0):
-                self._x_desired = x_desired
-                self._q_desired = q_desired
+                self._q_desired_vel = q_desired_vel
+
+                q_max = max(abs(q_desired_vel[i]) for i in xrange(0, self._num_joints))
+                for i in xrange(0, self._num_joints):
+                    self._q_desired_vel[i] /= q_max
+
             else:
                 raise Exception('IK failed [{0}]'.format(success))
 
@@ -129,9 +139,31 @@ class TeleopLimb:
         with self._lock:
             # Fill in relevant components of command to atlas
             for idx in xrange(0, self._num_joints):
-                atlas_command.position[self._idx_chain[idx]] = self._q_desired[idx]
+                atlas_command.k_effort[self._idx_chain[idx]] = 255.0
+
+                # Servo using velocity
+                atlas_command.velocity[self._idx_chain[idx]] = 6.0 * self._q_desired_vel[idx]
+                atlas_command.kp_velocity[self._idx_chain[idx]] = 10.0
+
+                # Zero out position component
+                atlas_command.kp_position[self._idx_chain[idx]] = 0.0
+                atlas_command.ki_position[self._idx_chain[idx]] = 0.0
+                atlas_command.kd_position[self._idx_chain[idx]] = 0.0
+
+
+    def clear(self, atlas_command):
+        with self._lock:
+            # Fill in relevant components of command to atlas
+            for idx in xrange(0, self._num_joints):
+
+                # Zero out velocity component
+                atlas_command.kp_velocity[self._idx_chain[idx]] = 0.0
+                atlas_command.k_effort[self._idx_chain[idx]] = 255.0
+
+                # Hold at current position
+                atlas_command.position[self._idx_chain[idx]] = self._q_current[idx] or 0.0
                 atlas_command.kp_position[self._idx_chain[idx]] = self._kp[idx]
                 atlas_command.ki_position[self._idx_chain[idx]] = self._ki[idx]
                 atlas_command.kd_position[self._idx_chain[idx]] = self._kd[idx]
-                atlas_command.k_effort[self._idx_chain[idx]] = 255
+
 
