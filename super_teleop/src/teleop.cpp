@@ -1,4 +1,5 @@
 #include "teleop_robot.hpp"
+#include "teleop_limb.hpp"
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
@@ -10,6 +11,7 @@
 
 tf::TransformBroadcaster br;
 tf::TransformListener tl;
+std::vector<TeleopLimb> limbs;
 
 void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
 {
@@ -52,6 +54,8 @@ int main(int argc, char* argv[])
 
   // Create a teleop robot
   TeleopRobot robot(nh);
+  limbs.push_back(TeleopLimb(robot, "utorso", "l_hand"));
+  limbs.push_back(TeleopLimb(robot, "utorso", "r_hand"));
 
   // Create a publisher for the commanded joints
   ros::Publisher pub = nh.advertise<atlas_msgs::AtlasCommand>("/atlas/atlas_command", 1);

@@ -26,5 +26,9 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
-rosbuild_add_executable(teleop src/teleop.cpp src/teleop_robot.cpp)
+rosbuild_add_executable(teleop 
+  src/teleop.cpp 
+  src/teleop_robot.cpp
+  src/teleop_limb.cpp
+  )
 #target_link_libraries(example ${PROJECT_NAME})
