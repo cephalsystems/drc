@@ -42,19 +42,37 @@ void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
 
 void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
 {
+  std::string paddle_frame[] = {"/left", "/right"};
+  tf::Transform paddle_tf[] = {
+    tf::Transform(tf::Transform().getIdentity()),
+    tf::Transform(tf::Transform().getIdentity()) 
+  };
+  paddle_tf[0].getRotation().setEuler(-1.5707, 0, 0);
+  paddle_tf[1].getRotation().setEuler( 1.5707, 0, 0);
+
   // Transform and scale hydra poses as necessary
-  std::string paddle_tf[] = {"/left", "/right"};
   for (unsigned int i = 0; i < 2; ++i) {
+
+    // Extract transform from geometry message
     tf::Transform transform;
     tf::transformMsgToTF(msg->paddles[i].transform, transform);
+
+    // Do a bit of an offset here
+    tf::Transform offset;
+    offset.setIdentity();
+    offset.setOrigin(tf::Vector3(1, 0, -0.5));
+    transform = offset*transform;
+
+    // Send out transform to TF for debugging
+    transform = offset*transform*paddle_tf[i];
     tf_out->sendTransform(tf::StampedTransform(transform, ros::Time::now(), 
-					       "/" + limbs[i].startLink(), paddle_tf[i]));
+					       "/" + limbs[i].startLink(), paddle_frame[i]));
     
     // Add command to arm if trigger is pressed
     if (msg->paddles[i].trigger > 0.9) {
       std::map<std::string, double> cmds = limbs[i].solveEnd(transform);
       commands.insert(cmds.begin(), cmds.end());
-      ROS_INFO("Updating %s", paddle_tf[i].c_str());
+      ROS_INFO("Updating %s", paddle_frame[i].c_str());
     }
   }
 }
@@ -80,7 +98,7 @@ int main(int argc, char* argv[])
   limbs.push_back(TeleopLimb(robot, "utorso", "r_hand"));
 
   // Create a publisher for the commanded joints
-  ros::Publisher pub = nh.advertise<atlas_msgs::AtlasCommand>("/atlas/atlas_command", 1);
+  ros::Publisher atlas_pub = nh.advertise<atlas_msgs::AtlasCommand>("/atlas/atlas_command", 1);
 
   // Subscribe to all the necessary ROS topics
   ros::Subscriber atlas_sub = nh.subscribe("/atlas/atlas_state", 1, atlasCallback);
@@ -97,6 +115,7 @@ int main(int argc, char* argv[])
   cmd_msg.ki_position.resize(n);
   cmd_msg.kd_position.resize(n);
   cmd_msg.kp_velocity.resize(n);
+  cmd_msg.k_effort.resize(n);
   cmd_msg.i_effort_min.resize(n);
   cmd_msg.i_effort_max.resize(n);
 
@@ -114,6 +133,7 @@ int main(int argc, char* argv[])
     cmd_msg.ki_position[i]  = ki;
     cmd_msg.kd_position[i]  = kd;
     cmd_msg.kp_velocity[i]  = 0;
+    cmd_msg.k_effort[i]     = 0;
 
     cmd_msg.i_effort_min[i] = -i_clamp;
     cmd_msg.i_effort_max[i] =  i_clamp;
@@ -137,11 +157,14 @@ int main(int argc, char* argv[])
       // If it exists, fill it in
       if (it != commands.end()) {
 	cmd_msg.position[i] = it->second;
-	cmd_msg.effort[i] = 255;
+	cmd_msg.k_effort[i] = 255;
       } else {
-	cmd_msg.effort[i] = 0;
+	cmd_msg.k_effort[i] = 0;
       }
     }
+
+    // Send out new joint command
+    atlas_pub.publish(cmd_msg);
 
     // Wait for next cycle
     ros::spinOnce();
