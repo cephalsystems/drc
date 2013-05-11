@@ -1,0 +1,20 @@
+<package>
+  <description brief="superteleop">
+
+     superteleop
+
+  </description>
+  <author>Cephal Systems</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/superteleop</url>
+  <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="razer_hydra"/>
+  <depend package="atlas_msgs"/>
+  <depend package="pi_tracker"/>
+  <depend package="kdl_parser"/>
+
+</package>
+
+
