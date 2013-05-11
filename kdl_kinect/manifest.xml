@@ -1,0 +1,24 @@
+<package>
+  <description brief="kdl_kinect">
+
+     kdl_kinect uses PyKDL to convert kinect positions into joint configurations
+
+  </description>
+  <author>Cephal Systems</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/kdl_kinect</url>
+
+  <depend package="rospy"/>
+  <depend package="tf"/>
+  <depend package="sensor_msgs"/>
+  <depend package="atlas_msgs"/>
+  <depend package="pykdl_utils"/>
+  <depend package="urdf_parser_py"/>
+  <depend package="python_orocos_kdl"/>
+  <depend package="razer_hydra"/>
+  <depend package="pi_tracker"/>
+
+</package>
+
+
