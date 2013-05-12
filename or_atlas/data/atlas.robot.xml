@@ -1,10 +1,18 @@
 <robot file="atlas.dae"> 
-  <Manipulator name="leftarm"> 
+  <Manipulator name="leftarm">
     <base>utorso</base> 
     <effector>l_hand</effector> 
   </Manipulator> 
-  <Manipulator name="rightarm"> 
+  <Manipulator name="rightarm">
     <base>utorso</base> 
     <effector>r_hand</effector> 
+  </Manipulator> 
+  <Manipulator name="leftleg">
+    <base>pelvis</base> 
+    <effector>l_foot</effector> 
+  </Manipulator> 
+  <Manipulator name="rightleg">
+    <base>pelvis</base> 
+    <effector>r_foot</effector> 
   </Manipulator> 
 </robot>

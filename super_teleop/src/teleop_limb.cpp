@@ -32,7 +32,7 @@ TeleopLimb::TeleopLimb(TeleopRobot &robot, std::string start_link, std::string e
   }
 
   // Initialize special IK velocity solver
-  double weights[] = {1.0, 1.0, 1.0, 1e-2, 1e-2, 1e-2};
+  double weights[] = {1.0, 1.0, 1.0, 1e-5, 1e-5, 1e-5};
 
   KDL::ChainIkSolverVel_wdls *ikv = new KDL::ChainIkSolverVel_wdls(chain);
   ikv->setWeightTS(Eigen::DiagonalMatrix<double, 6, 6>(Eigen::Matrix<double, 6, 1>(weights)));
