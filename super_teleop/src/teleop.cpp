@@ -46,9 +46,9 @@ void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
   }
 }
 
-void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
+void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
 {
-  std::string paddle_frame[] = {"/left", "/right"};
+  std::string paddle_frame[] = {"/left_hand", "/right_hand"};
   tf::Transform paddle_tf[] = {
     tf::Transform(tf::Quaternion(0, 0, -1.5707)),
     tf::Transform(tf::Quaternion(0, 0,  1.5707)) 
@@ -115,6 +115,44 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
   }
 }
 
+void hydraLegsCallback(const razer_hydra::Hydra::ConstPtr &msg)
+{
+  std::string paddle_frame[] = {"/left_leg", "/right_leg"};
+  tf::Transform paddle_tf[] = {
+    tf::Transform(tf::Quaternion(0, 0, 0)),
+    tf::Transform(tf::Quaternion(0, 0, 0)) 
+  };
+
+  // Transform and scale hydra poses as necessary
+  for (unsigned int i = 0; i < 2; ++i) {
+
+    // Extract transform from geometry message
+    tf::Transform transform;
+    tf::transformMsgToTF(msg->paddles[i].transform, transform);
+    transform.setOrigin(transform.getOrigin() * 2.0);
+
+    // Do a bit of an offset here
+    tf::Transform offset;
+    offset.setIdentity();
+    offset.setOrigin(tf::Vector3(0.0, 0.0,-1.5));
+
+    // Send out transform to TF for debugging
+    transform = offset*transform*paddle_tf[i];
+    tf_out->sendTransform(tf::StampedTransform(transform, ros::Time::now(), 
+					       "/" + limbs[i+2].startLink(), paddle_frame[i]));
+    
+    // Add command to arm if trigger is pressed
+    if (msg->paddles[i].trigger > 0.9) {
+      std::map<std::string, double> cmds = limbs[i+2].solveEnd(transform);
+      for ( std::map<std::string, double>::const_iterator it = cmds.begin();
+	    it != cmds.end(); ++it ) {
+	commands[it->first] = it->second;
+      }
+      ROS_INFO("Updating %s", paddle_frame[i].c_str());
+    }
+  }
+}
+
 void skeletonCallback(const pi_tracker::Skeleton::ConstPtr &msg)
 {
 
@@ -134,13 +172,16 @@ int main(int argc, char* argv[])
   TeleopRobot robot(nh);
   limbs.push_back(TeleopLimb(robot, "utorso", "l_hand"));
   limbs.push_back(TeleopLimb(robot, "utorso", "r_hand"));
+  limbs.push_back(TeleopLimb(robot, "pelvis", "l_foot"));
+  limbs.push_back(TeleopLimb(robot, "pelvis", "r_foot"));
 
   // Create a publisher for the commanded joints
   ros::Publisher atlas_pub = nh.advertise<atlas_msgs::AtlasCommand>("/atlas/atlas_command", 1);
 
   // Subscribe to all the necessary ROS topics
   ros::Subscriber atlas_sub = nh.subscribe("/atlas/atlas_state", 1, atlasCallback);
-  ros::Subscriber hydra_sub = nh.subscribe("/arms/hydra_calib", 1, hydraCallback);
+  ros::Subscriber hydra_arms_sub = nh.subscribe("/arms/hydra_calib", 1, hydraArmsCallback);
+  ros::Subscriber hydra_legs_sub = nh.subscribe("/legs/hydra_calib", 1, hydraLegsCallback);
   ros::Subscriber skel_sub = nh.subscribe("/skeleton", 1, skeletonCallback);
 
   // Subscribe to the hand services
