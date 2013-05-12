@@ -13,7 +13,7 @@
 <script>
     function init() {
       ros = new ROSLIB.Ros({
-      url : 'ws://demo2.robotwebtools.org:9090'
+      url : 'ws://localhost:9090'
     });
 
     viewer = new ROS3D.Viewer({
@@ -50,7 +50,7 @@
         rate : 10.0,
         fixedFrame : '/world'
       }),
-      path : 'http://resources.robotwebtools.org/',
+      path : '' + window.location,
       rootObject : viewer.scene
     });
   }
