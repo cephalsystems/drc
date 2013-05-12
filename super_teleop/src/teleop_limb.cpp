@@ -2,7 +2,7 @@
 #include <tf_conversions/tf_kdl.h>
 
 #include <kdl/chainfksolverpos_recursive.hpp>
-#include <kdl/chainiksolvervel_pinv.hpp>
+#include <kdl/chainiksolvervel_wdls.hpp>
 #include <kdl/chainiksolverpos_nr_jl.hpp>
 
 
@@ -28,12 +28,24 @@ TeleopLimb::TeleopLimb(TeleopRobot &robot, std::string start_link, std::string e
     q_max.data[i] = robot.urdf.getJoint(names_[i])->limits->upper;
   }
 
+  // Initialize special IK velocity solver
+  KDL::ChainIkSolverVel_wdls *ikv = new KDL::ChainIkSolverVel_wdls(chain);
+  Eigen::Matrix<double, 6, 6> weights;
+  weights << 
+    1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.01, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.01, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.01;
+  ikv->setWeightTS(weights);
+
   // Initialize IK solvers
   fk_ = new KDL::ChainFkSolverPos_recursive(chain);
-  ikv_ = new KDL::ChainIkSolverVel_pinv(chain);
+  ikv_ = ikv;
   ik_ = new KDL::ChainIkSolverPos_NR_JL(chain, q_min, q_max,
 					*(fk_), *(ikv_), 
-					500, 1e-3);
+					200, 1e-3);
 }
 
 std::string TeleopLimb::startLink()
