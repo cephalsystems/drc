@@ -15,6 +15,7 @@
 
   <depend package="razer_hydra"/>
   <depend package="atlas_msgs"/>
+  <depend package="sandia_hand_msgs"/>
   <depend package="pi_tracker"/>
   <depend package="kdl_parser"/>
   <depend package="kdl"/>

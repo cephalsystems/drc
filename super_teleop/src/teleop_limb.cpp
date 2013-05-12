@@ -3,7 +3,10 @@
 
 #include <kdl/chainfksolverpos_recursive.hpp>
 #include <kdl/chainiksolvervel_wdls.hpp>
+#include <kdl/chainiksolvervel_pinv.hpp>
 #include <kdl/chainiksolverpos_nr_jl.hpp>
+#include "chainiksolverpos_nr_jl_we.hpp"
+#include <kdl/chainiksolverpos_lma.hpp>
 
 
 TeleopLimb::TeleopLimb(TeleopRobot &robot, std::string start_link, std::string end_link) :
@@ -29,23 +32,21 @@ TeleopLimb::TeleopLimb(TeleopRobot &robot, std::string start_link, std::string e
   }
 
   // Initialize special IK velocity solver
+  double weights[] = {1.0, 1.0, 1.0, 1e-2, 1e-2, 1e-2};
+
   KDL::ChainIkSolverVel_wdls *ikv = new KDL::ChainIkSolverVel_wdls(chain);
-  Eigen::Matrix<double, 6, 6> weights;
-  weights << 
-    1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.01, 0.0, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.01, 0.0,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.01;
-  ikv->setWeightTS(weights);
+  ikv->setWeightTS(Eigen::DiagonalMatrix<double, 6, 6>(Eigen::Matrix<double, 6, 1>(weights)));
 
   // Initialize IK solvers
   fk_ = new KDL::ChainFkSolverPos_recursive(chain);
   ikv_ = ikv;
-  ik_ = new KDL::ChainIkSolverPos_NR_JL(chain, q_min, q_max,
-					*(fk_), *(ikv_), 
-					200, 1e-3);
+  
+  KDL::ChainIkSolverPos_NR_JL_WE *ik = new KDL::ChainIkSolverPos_NR_JL_WE(chain, 
+									  q_min, q_max, 
+									  (*fk_), (*ikv_),
+									  500, 1e-3);
+  ik->setWeights(weights);
+  ik_ = ik;
 }
 
 std::string TeleopLimb::startLink()

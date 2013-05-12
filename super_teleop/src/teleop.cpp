@@ -7,6 +7,7 @@
 #include <razer_hydra/Hydra.h>
 #include <atlas_msgs/AtlasState.h>
 #include <atlas_msgs/AtlasCommand.h>
+#include <sandia_hand_msgs/SimpleGraspSrv.h>
 #include <pi_tracker/Skeleton.h>
 
 #include <vector>
@@ -17,6 +18,11 @@ tf::TransformBroadcaster *tf_out;
 tf::TransformListener *tf_in;
 std::vector<TeleopLimb> limbs;
 std::map<std::string, double> commands;
+
+ros::ServiceClient left_hand;
+sandia_hand_msgs::SimpleGraspSrv left_hand_grasp;
+ros::ServiceClient right_hand;
+sandia_hand_msgs::SimpleGraspSrv right_hand_grasp;
 
 std::vector<std::string> ATLAS_JOINT_NAMES = {
   "back_lbz", "back_mby", "back_ubx", "neck_ay",
@@ -54,6 +60,7 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
     // Extract transform from geometry message
     tf::Transform transform;
     tf::transformMsgToTF(msg->paddles[i].transform, transform);
+    transform.setOrigin(transform.getOrigin() * 2.0);
 
     // Do a bit of an offset here
     tf::Transform offset;
@@ -73,6 +80,37 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
 	commands[it->first] = it->second;
       }
       ROS_INFO("Updating %s", paddle_frame[i].c_str());
+    }
+  }
+
+  // TODO: make this not a cheap hack
+  // Control the left hand
+  if (msg->paddles[0].buttons[1]) {
+    left_hand_grasp.request.grasp.name = "cylindrical";
+    left_hand_grasp.request.grasp.closed_amount = 0.0;
+    if (!left_hand.call(left_hand_grasp)) {
+      ROS_ERROR("Failed to call hand service");
+    }
+  } else if (msg->paddles[0].buttons[3]) {
+    left_hand_grasp.request.grasp.name = "cylindrical";
+    left_hand_grasp.request.grasp.closed_amount = 1.0;
+    if (!left_hand.call(left_hand_grasp)) {
+      ROS_ERROR("Failed to call hand service");
+    }
+  }
+
+  // Control the right hand
+  if (msg->paddles[1].buttons[1]) {
+    right_hand_grasp.request.grasp.name = "cylindrical";
+    right_hand_grasp.request.grasp.closed_amount = 0.0;
+    if (!right_hand.call(right_hand_grasp)) {
+      ROS_ERROR("Failed to call hand service");
+    }
+  } else if (msg->paddles[1].buttons[3]) {
+    right_hand_grasp.request.grasp.name = "cylindrical";
+    right_hand_grasp.request.grasp.closed_amount = 1.0;
+    if (!right_hand.call(right_hand_grasp)) {
+      ROS_ERROR("Failed to call hand service");
     }
   }
 }
@@ -105,6 +143,12 @@ int main(int argc, char* argv[])
   ros::Subscriber hydra_sub = nh.subscribe("/arms/hydra_calib", 1, hydraCallback);
   ros::Subscriber skel_sub = nh.subscribe("/skeleton", 1, skeletonCallback);
 
+  // Subscribe to the hand services
+  left_hand = nh.serviceClient<sandia_hand_msgs::SimpleGraspSrv>
+    ("/sandia_hands/l_hand/simple_grasp");
+  right_hand = nh.serviceClient<sandia_hand_msgs::SimpleGraspSrv>
+    ("/sandia_hands/r_hand/simple_grasp");
+
   // Create an ATLAS command
   unsigned int n = ATLAS_JOINT_NAMES.size();
   atlas_msgs::AtlasCommand cmd_msg;
@@ -119,6 +163,21 @@ int main(int argc, char* argv[])
   cmd_msg.i_effort_min.resize(n);
   cmd_msg.i_effort_max.resize(n);
 
+  // Initialize robot in some pose
+  commands["l_arm_usy"] = -0.40;
+  commands["l_arm_shx"] =  0.30;
+  commands["l_arm_ely"] =  1.80;
+  commands["l_arm_elx"] =  1.70;
+  commands["l_arm_uwy"] = -0.90;
+  commands["l_arm_mwx"] = -0.25;
+
+  commands["r_arm_usy"] = -0.68;
+  commands["r_arm_shx"] =  0.18;
+  commands["r_arm_ely"] =  1.79; 
+  commands["r_arm_elx"] = -1.75;
+  commands["r_arm_uwy"] =  0.01;
+  commands["r_arm_mwx"] = -0.44;
+
   // Fill in PID values
   std::string gains_prefix = "atlas_controller/gains/";
   for (unsigned int i = 0; i < n; ++i) {
@@ -131,7 +190,7 @@ int main(int argc, char* argv[])
 
     cmd_msg.kp_position[i]  = kp;
     cmd_msg.ki_position[i]  = ki;
-    cmd_msg.kd_position[i]  = kd;
+    cmd_msg.kd_position[i]  = kd * 10;
     cmd_msg.kp_velocity[i]  = 0;
     cmd_msg.k_effort[i]     = 0;
 

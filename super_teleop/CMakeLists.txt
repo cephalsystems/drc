@@ -32,5 +32,6 @@ rosbuild_add_executable(teleop
   src/teleop.cpp 
   src/teleop_robot.cpp
   src/teleop_limb.cpp
+  src/chainiksolverpos_nr_jl_we.cpp
   )
 #target_link_libraries(example ${PROJECT_NAME})
