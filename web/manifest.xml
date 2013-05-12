@@ -1,0 +1,16 @@
+<package>
+  <description brief="web">
+
+     web
+
+  </description>
+  <author>Cephal Systems</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/web</url>
+  <depend package="mjpeg_server"/>
+  <depend package="rosbridge_server"/>
+
+</package>
+
+
