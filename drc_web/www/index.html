@@ -41,14 +41,14 @@
     // Add stuff to the world
     viewer.addObject(new ROS3D.Grid());
 
-    new ROS3D.UrdfClient({
+    urdf = new ROS3D.UrdfClient({
       ros : ros,
       tfClient : new ROSLIB.TFClient({
         ros : ros,
         angularThres : 0.01,
         transThres : 0.01,
         rate : 10.0,
-        fixedFrame : '/world'
+        fixedFrame : '/utorso'
       }),
       path : '' + window.location,
       rootObject : viewer.scene
