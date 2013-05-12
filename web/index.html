@@ -5,49 +5,38 @@
 <meta charset="utf-8" />
 <script src="js/three.min.js"></script>
 <script src="js/OculusRiftEffect.js"></script>
+<script src="js/stats.min.js"></script>
 <script src="js/ColladaLoader2.min.js"></script>
 <script src="js/eventemitter2.min.js"></script>
 <script src="js/roslib.js"></script>
 <script src="js/ros3d.js"></script> 
 <script>
-
-  function init() {
-    ros = new ROSLIB.Ros({
+    function init() {
+      ros = new ROSLIB.Ros({
       url : 'ws://demo2.robotwebtools.org:9090'
     });
 
     viewer = new ROS3D.Viewer({
-      divID : 'urdf',
+      divID : 'viewport',
       width : window.innerWidth,
       height : window.innerHeight,
       antialias : true
     });
+  
+    stats = new Stats();
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.top = '0px';
+    document.getElementById('viewport').appendChild( stats.domElement );
 
-    renderer = viewer.renderer;
-    effect = new THREE.OculusRiftEffect( renderer, {worldScale: 1} );
+    effect = new THREE.OculusRiftEffect( viewer.renderer, {worldScale: 1} );
     effect.setSize( window.innerWidth, window.innerHeight );
 
-    viewer.draw = function draw() {
-      that = viewer;
-
-      // update the controls                                                      
-      that.cameraControls.update();
-
-      // put light to the top-left of the camera                                  
-      that.directionalLight.position = that.camera.localToWorld(new THREE.Vector3(-1, 1, 0));
-      that.directionalLight.position.normalize();
-
-      // set the scene                                                            
-      that.renderer.clear(true, true, true);
-      effect.render(that.scene, that.camera);
-
-      // render any mouseovers                                                    
-      that.highlighter.renderHighlight(that.renderer, that.scene, that.camera);
-
-      // draw the frame                                                           
-      requestAnimationFrame(draw);
+    function oculus_draw() {
+      effect.render(viewer.scene, viewer.camera);
+      requestAnimationFrame(oculus_draw);
+      stats.update();
     };
-    viewer.draw();
+    oculus_draw();
 
     // Add stuff to the world
     viewer.addObject(new ROS3D.Grid());
@@ -68,6 +57,6 @@
 </script>
 </head>
 <body onload="init()">
-  <div id="urdf"></div>
+  <div id="viewport"></div>
 </body>
 </html>
