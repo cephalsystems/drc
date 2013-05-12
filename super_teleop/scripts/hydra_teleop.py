@@ -41,6 +41,7 @@ class AtlasTeleop():
     
     def init(self):
         self._isResetting = False;
+        self._isWalking = False;
         
         # Connects to necessary command topics
         self.command = rospy.Publisher('atlas/atlas_sim_interface_command', \
@@ -59,8 +60,12 @@ class AtlasTeleop():
 
     def process_hydra(self, msg):
         # Drive the hydra around
-        if (msg.paddles[0].joy[0] or msg.paddles[0].joy[1] or msg.paddles[1].joy[0]):
-            self.twist(msg.paddles[0].joy[1], msg.paddles[0].joy[0], msg.paddles[1].joy[0])
+        if msg.paddles[0].buttons[6] or msg.paddles[1].buttons[6]:
+            if not self._isWalking:
+                self._isWalking = True
+                self.twist(msg.paddles[0].joy[1], msg.paddles[0].joy[0], msg.paddles[1].joy[0])
+        else:
+            self._isWalking = False
 
         # RESET robot if necessary
         if msg.paddles[0].buttons[5] or msg.paddles[1].buttons[5]:
@@ -140,7 +145,7 @@ class AtlasTeleop():
                 X = forward * turn * R_foot * math.sin(theta)
                 Y = forward * turn * (R - R_foot*math.cos(theta))
                 
-                self.debuginfo("R: " + str(R) + " R_foot:" + \
+                rospy.logdebug("R: " + str(R) + " R_foot:" + \
                 str(R_foot) + " theta: " + str(theta) +  \
                " math.sin(theta): " + str(math.sin(theta)) + \
                " math.cos(theta) + " + str(math.cos(theta)))
@@ -184,7 +189,7 @@ class AtlasTeleop():
         if turn == 0:
             Y = Y - foot * W
         elif forward != 0:
-            self.debuginfo("R: " + str(R) + " R_foot:" + \
+            rospy.logdebug("R: " + str(R) + " R_foot:" + \
             str(R_foot) + " theta: " + str(theta) +  \
            " math.sin(theta): " + str(math.sin(theta)) + \
            " math.cos(theta) + " + str(math.cos(theta)))
@@ -220,18 +225,15 @@ class AtlasTeleop():
                
         walk_goal = AtlasSimInterfaceCommand()
         walk_goal.behavior = AtlasSimInterfaceCommand.WALK
-        walk_goal.walk_params.steps = steps
+        walk_goal.walk_params.step_data = steps
+        walk_goal.walk_params.use_demo_walk = False
         
         self.command.publish(walk_goal)
         for step in steps:
-            self.debuginfo("foot: " + str(step.foot_index) + \
+            rospy.logdebug("foot: " + str(step.foot_index) + \
               " [" + str(step.pose.position.x) + \
               ", " + str(step.pose.position.y) + ", " + str(theta) + "]")   
             
-        self.client.wait_for_result(\
-          rospy.Duration(2*self.params["Stride Duration"]["value"] * \
-                         len(steps) + 5))
-
 if __name__ == '__main__':
     rospy.init_node('walking_client')
     teleop = AtlasTeleop()
