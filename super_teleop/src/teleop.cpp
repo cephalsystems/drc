@@ -44,11 +44,9 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
 {
   std::string paddle_frame[] = {"/left", "/right"};
   tf::Transform paddle_tf[] = {
-    tf::Transform(tf::Transform().getIdentity()),
-    tf::Transform(tf::Transform().getIdentity()) 
+    tf::Transform(tf::Quaternion(0, 0, -1.5707)),
+    tf::Transform(tf::Quaternion(0, 0,  1.5707)) 
   };
-  paddle_tf[0].getRotation().setEuler(-1.5707, 0, 0);
-  paddle_tf[1].getRotation().setEuler( 1.5707, 0, 0);
 
   // Transform and scale hydra poses as necessary
   for (unsigned int i = 0; i < 2; ++i) {
@@ -60,8 +58,7 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
     // Do a bit of an offset here
     tf::Transform offset;
     offset.setIdentity();
-    offset.setOrigin(tf::Vector3(1, 0, -0.5));
-    transform = offset*transform;
+    offset.setOrigin(tf::Vector3(0.5, 0, -0.5));
 
     // Send out transform to TF for debugging
     transform = offset*transform*paddle_tf[i];
