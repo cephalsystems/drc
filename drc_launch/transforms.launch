@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="tf" type="static_transform_publisher" name="torso_hydra_arms" args="0 0 -1 0 0 0 /utorso /arms/hydra_base 100" />
+  <node pkg="tf" type="static_transform_publisher" name="torso_hydra_arms" args="1 0 0 0 0 0 /utorso /arms/hydra_base 100" />
   <node pkg="tf" type="static_transform_publisher" name="torso_hydra_legs" args="0 0 -1.5 0 0 0 /utorso /legs/hydra_base 100" />
 
   <node pkg="tf" type="static_transform_publisher" name="hydra_left_hand"  args="0 0 0 -1.5707 0 0 /arms/hydra_left  /arms/left  100" />
