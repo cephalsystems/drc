@@ -68,7 +68,10 @@ void hydraCallback(const razer_hydra::Hydra::ConstPtr &msg)
     // Add command to arm if trigger is pressed
     if (msg->paddles[i].trigger > 0.9) {
       std::map<std::string, double> cmds = limbs[i].solveEnd(transform);
-      commands.insert(cmds.begin(), cmds.end());
+      for ( std::map<std::string, double>::const_iterator it = cmds.begin();
+	    it != cmds.end(); ++it ) {
+	commands[it->first] = it->second;
+      }
       ROS_INFO("Updating %s", paddle_frame[i].c_str());
     }
   }
