@@ -80,4 +80,7 @@ if __name__ == '__main__':
     rospy.init_node('hydra_recorder')
     hr = HydraRecorder()
     rospy.spin()
+    print "TABLE:"
+    print hr.arm_table
+    print hr.leg_table
 

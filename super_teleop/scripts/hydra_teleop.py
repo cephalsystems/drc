@@ -80,12 +80,12 @@ class AtlasTeleop():
     # Publishes commands to reset robot to a standing position
     def reset_to_standing(self):
         self.mode.publish("harnessed")
-        self.control_mode.publish("Freeze")
-        self.control_mode.publish("StandPrep")
-        rospy.sleep(2.0)
-        self.mode.publish("nominal")
-        rospy.sleep(0.3)
-        self.control_mode.publish("Stand")
+#        self.control_mode.publish("Freeze")
+#        self.control_mode.publish("StandPrep")
+#        rospy.sleep(2.0)
+#        self.mode.publish("nominal")
+#        rospy.sleep(0.3)
+#        self.control_mode.publish("Stand")
         
     # Builds a trajectory of step commands. 
     # Param forward: 1 forward, -1 backward or 0 if no forward component
