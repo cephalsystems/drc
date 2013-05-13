@@ -31,7 +31,7 @@ class AtlasTeleop():
               "Step Height":{"value":0, "min":-1, "max":1, "type":"float"},
               "Stride Duration":{ "value":0.63, "min": 0, "max":100, \
                                 "type":"float"},
-              "Walk Sequence Length":{"value":4, "min":4, "max":4, \
+              "Walk Sequence Length":{"value":2, "min":2, "max":2, \
                                 "type":"int"},
               "Stride Width":{"value":0.2, "min":0, "max":1, "type":"float"},
               "In Place Turn Size":{"value":math.pi / 16, "min":0, \
@@ -92,6 +92,7 @@ class AtlasTeleop():
     # Param lateral: 1 left, -1 right, 0 if no lateral component
     # Param turn: 1 Counter clockwise turn, -1 clockwise turn    
     def twist(self, forward, lateral, turn):
+        print str(forward) + ',' + str(lateral) + ',' +  str(turn)
         steps = []
         
         L = self.params["Forward Stride Length"]["value"]
@@ -227,6 +228,7 @@ class AtlasTeleop():
         walk_goal.behavior = AtlasSimInterfaceCommand.WALK
         walk_goal.walk_params.step_data = steps
         walk_goal.walk_params.use_demo_walk = False
+        print(str(walk_goal))
         
         self.command.publish(walk_goal)
         for step in steps:
