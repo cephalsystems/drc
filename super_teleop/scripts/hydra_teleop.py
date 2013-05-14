@@ -65,13 +65,13 @@ class AtlasTeleop():
                                    step.pose.orientation.w ],
                                  rospy.Time.now(),
                                  STEP_NAMES[i],
-                                 "pelvis")
+                                 "world")
             for i in xrange(len(self.steps), NUM_STEPS):
                 br.sendTransform([ 0, 0, 0 ],
                                  [ 1, 0, 0, 0 ],
                                  rospy.Time.now(),
                                  STEP_NAMES[i],
-                                 "pelvis")
+                                 "world")
             r.sleep()
 
 
@@ -157,7 +157,6 @@ class AtlasTeleop():
                                                      transform.rotation.z,
                                                      transform.rotation.w ],
                                                    axes='sxyz')
-        print (roll, pitch, yaw)
         Q = quaternion_from_euler(0, 0, yaw, axes='sxyz')
 
         step.pose.orientation.x = Q[0]
