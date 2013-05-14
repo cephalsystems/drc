@@ -11,4 +11,7 @@
   <node name="hydra_preprocessor" 
 	pkg="super_teleop" type="hydra_preprocessor.py" output="screen" />
 
+  <node name="bdi_tf" 
+	pkg="super_teleop" type="bdi_tf.py" output="screen" />
+
 </launch>

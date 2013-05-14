@@ -38,15 +38,18 @@ class AtlasTeleop():
         self._isPressing = False;
         
         # Connects to necessary command topics
-        self.command = rospy.Publisher('atlas/atlas_sim_interface_command', \
+        self.command = rospy.Publisher('/atlas/atlas_sim_interface_command', \
           AtlasSimInterfaceCommand)
         self.mode = rospy.Publisher('/atlas/mode', String, None, False, \
           True, None)
         self.control_mode = rospy.Publisher('/atlas/control_mode', \
           String, None, False, True, None)
 
+        # Connect to TF
+        self.tf = tf.TransformListener()
+
         # Listen for hydra messages
-        rospy.Subscriber("/arms/hydra_calib", Hydra, self.process_hydra)
+        rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)
     
 
     def run(self):
@@ -81,8 +84,15 @@ class AtlasTeleop():
         for (i, paddle) in enumerate(msg.paddles):
             if paddle.buttons[2] and len(self.steps) < NUM_STEPS and not self._isPressing:
                 self._isPressing = True
-                rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
-                self.add_step(i, paddle.transform)
+                try:
+                    (trans,rot) = self.tf.lookupTransform('hydra_' + PADDLE_NAMES[i], 
+                                                          'world', rospy.Time(0))
+                    rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
+                    self.add_step(i, trans, rot)
+                except (tf.LookupException, 
+                        tf.ConnectivityException, 
+                        tf.ExtrapolationException) as e:
+                    rospy.loginfo('Footstep failed : ' + str(e))
                 return
 
         # Undo a step if some button is pressed
@@ -136,7 +146,7 @@ class AtlasTeleop():
 
 
     # Construct a new step from the hydra's projected ground position
-    def add_step(self, is_right_foot, transform):
+    def add_step(self, is_right_foot, trans, rot):
         
         # Create a new step object
         step = AtlasBehaviorStepData()
@@ -147,16 +157,12 @@ class AtlasTeleop():
         step.duration = self.params["Stride Duration"]["value"]
             
         # Project foot position into XY plane
-        step.pose.position.x = transform.translation.x
-        step.pose.position.y = transform.translation.y
+        step.pose.position.x = trans[0]
+        step.pose.position.y = trans[1]
         step.pose.position.z = self.params["Step Height"]["value"]
          
         # Project rotation into XY plane
-        (roll, pitch, yaw) = euler_from_quaternion([ transform.rotation.x,
-                                                     transform.rotation.y,
-                                                     transform.rotation.z,
-                                                     transform.rotation.w ],
-                                                   axes='sxyz')
+        (roll, pitch, yaw) = euler_from_quaternion(rot, axes='sxyz')
         Q = quaternion_from_euler(0, 0, yaw, axes='sxyz')
 
         step.pose.orientation.x = Q[0]
