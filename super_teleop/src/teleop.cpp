@@ -18,6 +18,7 @@ tf::TransformBroadcaster *tf_out;
 tf::TransformListener *tf_in;
 std::vector<TeleopLimb> limbs;
 std::map<std::string, double> commands;
+std::map<std::string, double> joints;
 
 ros::ServiceClient left_hand;
 sandia_hand_msgs::SimpleGraspSrv left_hand_grasp;
@@ -35,7 +36,6 @@ std::vector<std::string> ATLAS_JOINT_NAMES = {
 void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
 {
   // Construct a mapping from limbs to positions
-  std::map<std::string, double> joints;
   for (unsigned int i = 0; i < ATLAS_JOINT_NAMES.size(); ++i) {
     joints[ATLAS_JOINT_NAMES[i]] = msg->position[i];
   }
@@ -82,6 +82,11 @@ void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
       ROS_INFO("Updating %s", paddle_frame[i].c_str());
     }
   }
+
+  // Always set torso using joystick
+  commands["back_lbz"] = joints["back_lbz"] + msg->paddles[0].joy[0] / 5.0;
+  commands["back_mby"] = joints["back_mby"] + msg->paddles[0].joy[1] / 5.0;
+  commands["back_ubx"] = joints["back_ubx"] + msg->paddles[1].joy[0] / 5.0;
 
   // TODO: make this not a cheap hack
   // Control the left hand
