@@ -82,9 +82,9 @@ void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
 
   // Set torso using joystick if stick is pressed
   if (msg->paddles[0].buttons[6]) {
-    commands["back_lbz"] = joints["back_lbz"] + msg->paddles[0].joy[0] / 5.0;
-    commands["back_mby"] = joints["back_mby"] + msg->paddles[0].joy[1] / 5.0;
-    commands["back_ubx"] = joints["back_ubx"] + msg->paddles[1].joy[0] / 5.0;
+    commands["neck_ay"] = joints["neck_ay"] + msg->paddles[0].joy[1] / 5.0;
+    //    commands["back_mby"] = joints["back_mby"] + msg->paddles[0].joy[1] / 5.0;
+    //    commands["back_ubx"] = joints["back_ubx"] + msg->paddles[1].joy[0] / 5.0;
   } else if (msg->paddles[1].buttons[6]) {
     commands.clear();
   }
