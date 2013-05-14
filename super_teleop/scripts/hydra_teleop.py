@@ -11,17 +11,16 @@ from razer_hydra.msg import Hydra
 
 from geometry_msgs.msg import Pose
 from std_msgs.msg import String
+
+import tf
 from tf.transformations import quaternion_from_euler
 
-import actionlib
 import math
 import rospy
-import select
-import sys
-import termios
-import tty
+
 
 PADDLE_NAMES = [ 'left', 'right' ]
+STEP_NAMES = [ 'step1', 'step2', 'step3', 'step4' ]
 
 class AtlasTeleop():
     
@@ -42,6 +41,7 @@ class AtlasTeleop():
               "Swing Height":{"value":0.3, "min":0, "max":1, "type":"float"}}
 
     steps = []
+
     
     def init(self):
         self._isPressing = False;
@@ -57,15 +57,27 @@ class AtlasTeleop():
         # Listen for hydra messages
         rospy.Subscriber("/legs/hydra_calib", Hydra, self.process_hydra)
     
+
     def run(self):
         self.init()
-        rospy.spin()
+        br = tf.TransformBroadcaster()
+
+        r = rospy.Rate(100)
+        while not rospy.is_shutdown():
+            for (i, step) in enumerate(steps):
+                br.sendTransform((msg.x, msg.y, 0),
+                                 tf.transformations.quaternion_from_euler(0, 0, msg.theta),
+                                 rospy.Time.now(),
+                                 STEP_NAME[i],
+                                 "pelvis")
+            r.sleep()
+
 
     def process_hydra(self, msg):
 
         # Drive the hydra around to place footsteps
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[5] and not self._isPressing:
+            if paddle.buttons[5] and and len(steps) < 4 and not self._isPressing:
                 self._isPressing = True
                 rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
                 self.add_step(i, paddle.transform.position)
