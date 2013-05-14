@@ -48,7 +48,7 @@ void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
 
 void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
 {
-  std::string paddle_frame[] = {"/left_hand", "/right_hand"};
+  std::string paddle_frame[] = {"hydra_left", "hydra_right"};
   tf::Transform paddle_tf[] = {
     tf::Transform(tf::Quaternion(0, 0, -1.5707)),
     tf::Transform(tf::Quaternion(0, 0,  1.5707)) 
@@ -57,23 +57,20 @@ void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
   // Transform and scale hydra poses as necessary
   for (unsigned int i = 0; i < 2; ++i) {
 
-    // Extract transform from geometry message
-    tf::Transform transform;
-    tf::transformMsgToTF(msg->paddles[i].transform, transform);
-    transform.setOrigin(transform.getOrigin() * 2.0);
-
-    // Do a bit of an offset here
-    tf::Transform offset;
-    offset.setIdentity();
-    offset.setOrigin(tf::Vector3(0.5, 0, -0.5));
-
-    // Send out transform to TF for debugging
-    transform = offset*transform*paddle_tf[i];
-    tf_out->sendTransform(tf::StampedTransform(transform, ros::Time::now(), 
-					       "/" + limbs[i].startLink(), paddle_frame[i]));
+    // Extract transform from TF and apply correction
+    tf::StampedTransform transform;
+    try {
+      tf_in->waitForTransform("utorso", paddle_frame[i], ros::Time(0), ros::Duration(1.0));
+      tf_in->lookupTransform("utorso", paddle_frame[i], ros::Time(0), transform);
+      transform *= paddle_tf[i];
+    }
+    catch (tf::TransformException ex){
+      ROS_ERROR("Failed to get hydra pose: %s", ex.what());
+      continue;
+    }
 
     // Add command to arm if trigger is pressed
-    if (msg->paddles[i].trigger > 0.9) {
+    if (msg->paddles[i].trigger > 0.5) {
       std::map<std::string, double> cmds = limbs[i].solveEnd(transform);
       for ( std::map<std::string, double>::const_iterator it = cmds.begin();
 	    it != cmds.end(); ++it ) {
@@ -83,15 +80,13 @@ void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
     }
   }
 
-  // Always set torso using joystick
+  // Set torso using joystick if stick is pressed
   if (msg->paddles[0].buttons[6]) {
     commands["back_lbz"] = joints["back_lbz"] + msg->paddles[0].joy[0] / 5.0;
     commands["back_mby"] = joints["back_mby"] + msg->paddles[0].joy[1] / 5.0;
     commands["back_ubx"] = joints["back_ubx"] + msg->paddles[1].joy[0] / 5.0;
   } else if (msg->paddles[1].buttons[6]) {
-    commands.erase("back_lbz");
-    commands.erase("back_mby");
-    commands.erase("back_ubx");
+    commands.clear();
   }
 
   // TODO: make this not a cheap hack
@@ -191,7 +186,7 @@ int main(int argc, char* argv[])
 
   // Subscribe to all the necessary ROS topics
   ros::Subscriber atlas_sub = nh.subscribe("/atlas/atlas_state", 1, atlasCallback);
-  ros::Subscriber hydra_arms_sub = nh.subscribe("/arms/hydra_calib", 1, hydraArmsCallback);
+  ros::Subscriber hydra_arms_sub = nh.subscribe("hydra_calib", 1, hydraArmsCallback);
   // ros::Subscriber hydra_legs_sub = nh.subscribe("/legs/hydra_calib", 1, hydraLegsCallback);
   // ros::Subscriber skel_sub = nh.subscribe("/skeleton", 1, skeletonCallback);
 
