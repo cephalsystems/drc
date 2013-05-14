@@ -19,9 +19,9 @@ from tf.transformations import euler_from_quaternion
 import math
 import rospy
 
-
 PADDLE_NAMES = [ 'left', 'right' ]
-STEP_NAMES = [ 'step1', 'step2', 'step3', 'step4' ]
+STEP_NAMES = [ 'step1', 'step2', 'step3' ]
+NUM_STEPS = 3
 
 class AtlasTeleop():
     
@@ -59,14 +59,14 @@ class AtlasTeleop():
                 br.sendTransform([ step.pose.position.x,
                                    step.pose.position.y,
                                    step.pose.position.z ],
-                                 [ step.pose.orientation.w,
-                                   step.pose.orientation.x,
+                                 [ step.pose.orientation.x,
                                    step.pose.orientation.y,
-                                   step.pose.orientation.z ],
+                                   step.pose.orientation.z,
+                                   step.pose.orientation.w ],
                                  rospy.Time.now(),
                                  STEP_NAMES[i],
                                  "pelvis")
-            for i in xrange(len(self.steps), 4):
+            for i in xrange(len(self.steps), NUM_STEPS):
                 br.sendTransform([ 0, 0, 0 ],
                                  [ 1, 0, 0, 0 ],
                                  rospy.Time.now(),
@@ -79,7 +79,7 @@ class AtlasTeleop():
 
         # Drive the hydra around to place footsteps
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[2] and len(self.steps) < 4 and not self._isPressing:
+            if paddle.buttons[2] and len(self.steps) < NUM_STEPS and not self._isPressing:
                 self._isPressing = True
                 rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
                 self.add_step(i, paddle.transform)
@@ -94,7 +94,7 @@ class AtlasTeleop():
 
         # If we are happy with the footsteps then walk
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[0] and len(self.steps) == 4 and not self._isPressing:
+            if paddle.buttons[0] and len(self.steps) == NUM_STEPS and not self._isPressing:
                 self._isPressing = True
                 rospy.loginfo('Walking!')
                 self.walk()
@@ -120,6 +120,8 @@ class AtlasTeleop():
     # Publishes commands to reset robot to a standing position
     def reset_to_harnessed(self):
         self.mode.publish("harnessed")
+        self.control_mode.publish("Freeze")
+        self.control_mode.publish("StandPrep")
         rospy.sleep(0.3)
 
 
@@ -140,7 +142,7 @@ class AtlasTeleop():
         step = AtlasBehaviorStepData()
 
         # Bookkeeping for step and foot
-        step.step_index = len(self.steps)
+        step.step_index = len(self.steps) + 1
         step.foot_index = is_right_foot
         step.duration = self.params["Stride Duration"]["value"]
             
@@ -150,12 +152,13 @@ class AtlasTeleop():
         step.pose.position.z = self.params["Step Height"]["value"]
          
         # Project rotation into XY plane
-        (r, p, y) = euler_from_quaternion([ transform.rotation.w, 
-                                            transform.rotation.x,
-                                            transform.rotation.y,
-                                            transform.rotation.z ],
-                                            axes='sxyz')
-        Q = quaternion_from_euler(0, 0, y)
+        (roll, pitch, yaw) = euler_from_quaternion([ transform.rotation.x,
+                                                     transform.rotation.y,
+                                                     transform.rotation.z,
+                                                     transform.rotation.w ],
+                                                   axes='sxyz')
+        print (roll, pitch, yaw)
+        Q = quaternion_from_euler(0, 0, yaw, axes='sxyz')
 
         step.pose.orientation.x = Q[0]
         step.pose.orientation.y = Q[1]
@@ -179,8 +182,13 @@ class AtlasTeleop():
         walk_goal.k_effort =  [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
                
-        # Load in the step array 
-        walk_goal.walk_params.step_data = self.steps
+        # Create a dummy step
+        dummy_step = AtlasBehaviorStepData()
+        dummy_step.step_index = 0
+        dummy_step.foot_index = 1 - self.steps[0].foot_index
+
+        # Load in the step array
+        walk_goal.walk_params.step_data = [ dummy_step ] + self.steps
         
         # Send command to Atlas
         print(str(walk_goal))
