@@ -46,7 +46,7 @@ class AtlasTeleop():
           String, None, False, True, None)
 
         # Listen for hydra messages
-        rospy.Subscriber("/legs/hydra_calib", Hydra, self.process_hydra)
+        rospy.Subscriber("/arms/hydra_calib", Hydra, self.process_hydra)
     
 
     def run(self):
