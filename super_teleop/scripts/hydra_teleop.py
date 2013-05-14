@@ -55,8 +55,8 @@ class AtlasTeleop():
         r = rospy.Rate(100)
         while not rospy.is_shutdown():
             for (i, step) in enumerate(steps):
-                br.sendTransform((msg.x, msg.y, 0),
-                                 tf.transformations.quaternion_from_euler(0, 0, msg.theta),
+                br.sendTransform(step.pose.position,
+                                 step.pose.orientation,
                                  rospy.Time.now(),
                                  STEP_NAME[i],
                                  "pelvis")
