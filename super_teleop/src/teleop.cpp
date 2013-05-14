@@ -39,7 +39,7 @@ void atlasCallback(const atlas_msgs::AtlasState::ConstPtr &msg)
   for (unsigned int i = 0; i < ATLAS_JOINT_NAMES.size(); ++i) {
     joints[ATLAS_JOINT_NAMES[i]] = msg->position[i];
   }
-  
+
   // Update each limb with the new positions
   BOOST_FOREACH(TeleopLimb &limb, limbs) {
     limb.update(joints);
@@ -71,7 +71,7 @@ void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
     transform = offset*transform*paddle_tf[i];
     tf_out->sendTransform(tf::StampedTransform(transform, ros::Time::now(), 
 					       "/" + limbs[i].startLink(), paddle_frame[i]));
-    
+
     // Add command to arm if trigger is pressed
     if (msg->paddles[i].trigger > 0.9) {
       std::map<std::string, double> cmds = limbs[i].solveEnd(transform);
@@ -145,7 +145,7 @@ void hydraLegsCallback(const razer_hydra::Hydra::ConstPtr &msg)
     transform = offset*transform*paddle_tf[i];
     tf_out->sendTransform(tf::StampedTransform(transform, ros::Time::now(), 
 					       "/" + limbs[i+2].startLink(), paddle_frame[i]));
-    
+
     // Add command to arm if trigger is pressed
     if (msg->paddles[i].trigger > 0.9) {
       std::map<std::string, double> cmds = limbs[i+2].solveEnd(transform);
@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
 
     cmd_msg.i_effort_min[i] = -i_clamp;
     cmd_msg.i_effort_max[i] =  i_clamp;
-    
+
     cmd_msg.position[i]     = 0;
     cmd_msg.velocity[i]     = 0;
     cmd_msg.effort[i]       = 0;
@@ -251,14 +251,14 @@ int main(int argc, char* argv[])
   // Send ATLAS commands at a fixed rate
   ros::Rate r(100);
   while(ros::ok()) {
-    
+
     // Fill in command from current joint table
     for (unsigned int i = 0; i < ATLAS_JOINT_NAMES.size(); ++i) {
 
       // Look for a command for this joint
-      std::map<std::string, double>::iterator it = 
+      std::map<std::string, double>::iterator it =
 	commands.find(ATLAS_JOINT_NAMES[i]);
-      
+
       // If it exists, fill it in
       if (it != commands.end()) {
 	cmd_msg.position[i] = it->second;
