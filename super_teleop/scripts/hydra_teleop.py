@@ -85,8 +85,8 @@ class AtlasTeleop():
             if paddle.buttons[2] and len(self.steps) < NUM_STEPS and not self._isPressing:
                 self._isPressing = True
                 try:
-                    (trans,rot) = self.tf.lookupTransform('hydra_' + PADDLE_NAMES[i], 
-                                                          'world', rospy.Time(0))
+                    (trans,rot) = self.tf.lookupTransform('world', 'hydra_' + PADDLE_NAMES[i], 
+                                                          rospy.Time(0))
                     rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
                     self.add_step(i, trans, rot)
                 except (tf.LookupException, 
@@ -196,7 +196,6 @@ class AtlasTeleop():
         walk_goal.walk_params.step_data = [ dummy_step ] + self.steps
         
         # Send command to Atlas
-        print(str(walk_goal))
         self.command.publish(walk_goal)
         self.steps = []
 
