@@ -68,7 +68,13 @@ class AtlasTeleop():
             self._isWalking = False
 
         # RESET robot if necessary
-        if msg.paddles[0].buttons[5] or msg.paddles[1].buttons[5]:
+        if msg.paddles[0].buttons[5]:
+            if not self._isResetting:
+                self._isResetting = True
+                rospy.loginfo('Harnessing robot...')
+                self.reset_to_harnessed()
+                rospy.loginfo('Harnessing complete.')
+        elif msg.paddles[1].buttons[5]:
             if not self._isResetting:
                 self._isResetting = True
                 rospy.loginfo('Resetting robot...')
@@ -78,14 +84,19 @@ class AtlasTeleop():
             self._isResetting = False
 
     # Publishes commands to reset robot to a standing position
-    def reset_to_standing(self):
+    def reset_to_harnessed(self):
         self.mode.publish("harnessed")
-#        self.control_mode.publish("Freeze")
-#        self.control_mode.publish("StandPrep")
-#        rospy.sleep(2.0)
-#        self.mode.publish("nominal")
-#        rospy.sleep(0.3)
-#        self.control_mode.publish("Stand")
+        rospy.sleep(0.3)
+
+    def reset_to_released(self):
+        self.mode.publish("harnessed")
+        self.control_mode.publish("Freeze")
+        self.control_mode.publish("StandPrep")
+        rospy.sleep(2.0)
+        self.mode.publish("nominal")
+        rospy.sleep(0.3)
+        self.control_mode.publish("Stand")
+
         
     # Builds a trajectory of step commands. 
     # Param forward: 1 forward, -1 backward or 0 if no forward component
