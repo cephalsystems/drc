@@ -110,6 +110,7 @@ class AtlasTeleop():
         self.mode.publish("harnessed")
         rospy.sleep(0.3)
 
+
     def reset_to_released(self):
         self.mode.publish("harnessed")
         self.control_mode.publish("Freeze")
@@ -126,19 +127,26 @@ class AtlasTeleop():
         # Create a new step object
         step = AtlasBehaviorStepData()
 
+        # Bookkeeping for step and foot
         step.step_index = len(steps)
         step.foot_index = is_right_foot
         step.duration = self.params["Stride Duration"]["value"]
             
-        step.pose.position.x = position.x
-        step.pose.position.y = position.y
+        # Project foot position into XY plane
+        step.pose.position.x = transform.position.x
+        step.pose.position.y = transform.position.y
         step.pose.position.z = self.params["Step Height"]["value"]
          
+        # Project rotation into XY plane
+        (r, p, y) = euler_from_quaternion(transform.quaternion, axes='sxyz'):
+        Q = quaternion_from_euler(0, 0, y)
+
         step.pose.orientation.x = Q[0]
         step.pose.orientation.y = Q[1]
         step.pose.orientation.z = Q[2]
         step.pose.orientation.w = Q[3]
-        
+
+        # Hard coded swing height
         step.swing_height = self.params["Swing Height"]["value"]
 
         # Add this step onto the list
