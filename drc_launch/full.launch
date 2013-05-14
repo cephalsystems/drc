@@ -1,0 +1,14 @@
+<launch>
+  
+  <include file="$(find razer_hydra)/hydra.launch">
+    <arg name="device" value="/dev/hydra0" />
+  </include>
+
+  <include file="$(find drc_launch)/web_services.launch" />
+
+  <include file="$(find drc_launch)/transforms.launch" />
+
+  <node name="hydra_preprocessor" 
+	pkg="super_teleop" type="hydra_preprocessor.py" output="screen" />
+
+</launch>
