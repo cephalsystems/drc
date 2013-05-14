@@ -84,9 +84,15 @@ void hydraArmsCallback(const razer_hydra::Hydra::ConstPtr &msg)
   }
 
   // Always set torso using joystick
-  commands["back_lbz"] = joints["back_lbz"] + msg->paddles[0].joy[0] / 5.0;
-  commands["back_mby"] = joints["back_mby"] + msg->paddles[0].joy[1] / 5.0;
-  commands["back_ubx"] = joints["back_ubx"] + msg->paddles[1].joy[0] / 5.0;
+  if (msg->paddles[0].buttons[6]) {
+    commands["back_lbz"] = joints["back_lbz"] + msg->paddles[0].joy[0] / 5.0;
+    commands["back_mby"] = joints["back_mby"] + msg->paddles[0].joy[1] / 5.0;
+    commands["back_ubx"] = joints["back_ubx"] + msg->paddles[1].joy[0] / 5.0;
+  } else if (msg->paddles[1].buttons[6]) {
+    commands.erase("back_lbz");
+    commands.erase("back_mby");
+    commands.erase("back_ubx");
+  }
 
   // TODO: make this not a cheap hack
   // Control the left hand
@@ -186,8 +192,8 @@ int main(int argc, char* argv[])
   // Subscribe to all the necessary ROS topics
   ros::Subscriber atlas_sub = nh.subscribe("/atlas/atlas_state", 1, atlasCallback);
   ros::Subscriber hydra_arms_sub = nh.subscribe("/arms/hydra_calib", 1, hydraArmsCallback);
-  ros::Subscriber hydra_legs_sub = nh.subscribe("/legs/hydra_calib", 1, hydraLegsCallback);
-  ros::Subscriber skel_sub = nh.subscribe("/skeleton", 1, skeletonCallback);
+  // ros::Subscriber hydra_legs_sub = nh.subscribe("/legs/hydra_calib", 1, hydraLegsCallback);
+  // ros::Subscriber skel_sub = nh.subscribe("/skeleton", 1, skeletonCallback);
 
   // Subscribe to the hand services
   left_hand = nh.serviceClient<sandia_hand_msgs::SimpleGraspSrv>
