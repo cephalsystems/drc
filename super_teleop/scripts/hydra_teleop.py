@@ -14,6 +14,7 @@ from std_msgs.msg import String
 
 import tf
 from tf.transformations import quaternion_from_euler
+from tf.transformations import euler_from_quaternion
 
 import math
 import rospy
@@ -54,11 +55,22 @@ class AtlasTeleop():
 
         r = rospy.Rate(100)
         while not rospy.is_shutdown():
-            for (i, step) in enumerate(steps):
-                br.sendTransform(step.pose.position,
-                                 step.pose.orientation,
+            for (i, step) in enumerate(self.steps):
+                br.sendTransform([ step.pose.position.x,
+                                   step.pose.position.y,
+                                   step.pose.position.z ],
+                                 [ step.pose.orientation.w,
+                                   step.pose.orientation.x,
+                                   step.pose.orientation.y,
+                                   step.pose.orientation.z ],
                                  rospy.Time.now(),
-                                 STEP_NAME[i],
+                                 STEP_NAMES[i],
+                                 "pelvis")
+            for i in xrange(len(self.steps), 4):
+                br.sendTransform([ 0, 0, 0 ],
+                                 [ 1, 0, 0, 0 ],
+                                 rospy.Time.now(),
+                                 STEP_NAMES[i],
                                  "pelvis")
             r.sleep()
 
@@ -67,22 +79,22 @@ class AtlasTeleop():
 
         # Drive the hydra around to place footsteps
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[5] and and len(steps) < 4 and not self._isPressing:
+            if paddle.buttons[2] and len(self.steps) < 4 and not self._isPressing:
                 self._isPressing = True
                 rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
-                self.add_step(i, paddle.transform.position)
+                self.add_step(i, paddle.transform)
                 return
 
         # Undo a step if some button is pressed
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[4] and len(steps) > 0 not self._isPressing:
+            if paddle.buttons[4] and len(self.steps) > 0 and not self._isPressing:
                 self._isPressing = True
                 rospy.loginfo('Last footstep removed.')
                 del self.steps[-1]
 
         # If we are happy with the footsteps then walk
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[0] and len(steps) == 4 and not self._isPressing:
+            if paddle.buttons[0] and len(self.steps) == 4 and not self._isPressing:
                 self._isPressing = True
                 rospy.loginfo('Walking!')
                 self.walk()
@@ -111,7 +123,7 @@ class AtlasTeleop():
         rospy.sleep(0.3)
 
 
-    def reset_to_released(self):
+    def reset_to_standing(self):
         self.mode.publish("harnessed")
         self.control_mode.publish("Freeze")
         self.control_mode.publish("StandPrep")
@@ -128,17 +140,21 @@ class AtlasTeleop():
         step = AtlasBehaviorStepData()
 
         # Bookkeeping for step and foot
-        step.step_index = len(steps)
+        step.step_index = len(self.steps)
         step.foot_index = is_right_foot
         step.duration = self.params["Stride Duration"]["value"]
             
         # Project foot position into XY plane
-        step.pose.position.x = transform.position.x
-        step.pose.position.y = transform.position.y
+        step.pose.position.x = transform.translation.x
+        step.pose.position.y = transform.translation.y
         step.pose.position.z = self.params["Step Height"]["value"]
          
         # Project rotation into XY plane
-        (r, p, y) = euler_from_quaternion(transform.quaternion, axes='sxyz'):
+        (r, p, y) = euler_from_quaternion([ transform.rotation.w, 
+                                            transform.rotation.x,
+                                            transform.rotation.y,
+                                            transform.rotation.z ],
+                                            axes='sxyz')
         Q = quaternion_from_euler(0, 0, y)
 
         step.pose.orientation.x = Q[0]
