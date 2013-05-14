@@ -185,6 +185,7 @@ class AtlasTeleop():
         # Send command to Atlas
         print(str(walk_goal))
         self.command.publish(walk_goal)
+        self.steps = []
 
             
 if __name__ == '__main__':
