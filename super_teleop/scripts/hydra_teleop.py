@@ -21,6 +21,8 @@ import sys
 import termios
 import tty
 
+PADDLE_NAMES = [ 'left', 'right' ]
+
 class AtlasTeleop():
     
     # BDI Controller bindings
@@ -38,10 +40,11 @@ class AtlasTeleop():
                                     "max":math.pi / 2, "type":"float"},
               "Turn Radius":{"value":2, "min":0.01, "max":100, "type":"float"},
               "Swing Height":{"value":0.3, "min":0, "max":1, "type":"float"}}
+
+    steps = []
     
     def init(self):
-        self._isResetting = False;
-        self._isWalking = False;
+        self._isPressing = False;
         
         # Connects to necessary command topics
         self.command = rospy.Publisher('atlas/atlas_sim_interface_command', \
@@ -59,29 +62,46 @@ class AtlasTeleop():
         rospy.spin()
 
     def process_hydra(self, msg):
-        # Drive the hydra around
-        if msg.paddles[0].buttons[6] or msg.paddles[1].buttons[6]:
-            if not self._isWalking:
-                self._isWalking = True
-                self.twist(msg.paddles[0].joy[1], msg.paddles[0].joy[0], msg.paddles[1].joy[0])
-        else:
-            self._isWalking = False
+
+        # Drive the hydra around to place footsteps
+        for (i, paddle) in enumerate(msg.paddles):
+            if paddle.buttons[5] and not self._isPressing:
+                self._isPressing = True
+                rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
+                self.add_step(i, paddle.transform.position)
+                return
+
+        # Undo a step if some button is pressed
+        for (i, paddle) in enumerate(msg.paddles):
+            if paddle.buttons[4] and len(steps) > 0 not self._isPressing:
+                self._isPressing = True
+                rospy.loginfo('Last footstep removed.')
+                del self.steps[-1]
+
+        # If we are happy with the footsteps then walk
+        for (i, paddle) in enumerate(msg.paddles):
+            if paddle.buttons[0] and len(steps) == 4 and not self._isPressing:
+                self._isPressing = True
+                rospy.loginfo('Walking!')
+                self.walk()
+                return
 
         # RESET robot if necessary
-        if msg.paddles[0].buttons[5]:
-            if not self._isResetting:
-                self._isResetting = True
+        if msg.paddles[0].buttons[5] and not self._isPressing:
+                self._isPressing = True
                 rospy.loginfo('Harnessing robot...')
                 self.reset_to_harnessed()
                 rospy.loginfo('Harnessing complete.')
-        elif msg.paddles[1].buttons[5]:
-            if not self._isResetting:
-                self._isResetting = True
+        elif msg.paddles[1].buttons[5] and not self._isPressing:
+                self._isPressing = True
                 rospy.loginfo('Resetting robot...')
                 self.reset_to_standing()
                 rospy.loginfo('Resetting complete.')
-        else:
-            self._isResetting = False
+
+        # If no buttons are pushed, clear the debouncing
+        if not any(msg.paddles[0].buttons) and not any(msg.paddles[1].buttons):
+            self._isPressing = False
+
 
     # Publishes commands to reset robot to a standing position
     def reset_to_harnessed(self):
