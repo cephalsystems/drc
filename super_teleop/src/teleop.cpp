@@ -235,7 +235,7 @@ int main(int argc, char* argv[])
     nh.getParam("atlas_controller/gains/" + ATLAS_JOINT_NAMES[i] + "/d", kd);
     nh.getParam("atlas_controller/gains/" + ATLAS_JOINT_NAMES[i] + "/i_clamp", i_clamp);
 
-    cmd_msg.kp_position[i]  = kp;
+    cmd_msg.kp_position[i]  = kp * 0.5;
     cmd_msg.ki_position[i]  = ki;
     cmd_msg.kd_position[i]  = kd * 10;
     cmd_msg.kp_velocity[i]  = 0;

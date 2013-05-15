@@ -1,7 +1,7 @@
 <launch>
   
   <include file="$(find razer_hydra)/hydra.launch">
-   <arg name="device" value="/dev/hydra1" />
+    <arg name="device" value="/dev/hydra" />
   </include>
 
   <!--
@@ -27,5 +27,14 @@
 
   <node name="bdi_tf" 
 	pkg="super_teleop" type="bdi_tf.py" output="screen" />
+
+<!--  <node name="teleop_legs"
+	pkg="super_teleop" type="teleop_legs.py" output="screen" respawn="true"/> -->
+
+  <node name="teleop_arms"
+	pkg="super_teleop" type="teleop" output="screen" respawn="true"/>
+
+  <node name="rviz"
+	pkg="rviz" type="rviz" output="screen" />
 
 </launch>

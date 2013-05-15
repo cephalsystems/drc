@@ -10,6 +10,6 @@
   <node pkg="tf" type="static_transform_publisher" name="hydra_right_leg" args="0 0 0 0 0 0 /legs/hydra_right /legs/right 100" />
 -->
 
-  <node pkg="tf" type="static_transform_publisher" name="torso_hydra_arms" args="1 0 -1.75 0 0 0 /pelvis /hydra_base 100" />
+  <node pkg="tf" type="static_transform_publisher" name="torso_hydra_arms" args="1 0 -0.5 0 0 0 /pelvis /hydra_base 100" />
 
 </launch>
