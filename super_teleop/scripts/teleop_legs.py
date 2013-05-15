@@ -112,7 +112,7 @@ class AtlasTeleop():
         self.init()
         step_markers = MarkerArray()
 
-        r = rospy.Rate(10)
+        r = rospy.Rate(20)
         while not rospy.is_shutdown():
             step_markers.markers = []
 
