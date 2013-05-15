@@ -133,10 +133,10 @@ class AtlasTeleop():
                 marker.scale.x = 1.0
                 marker.scale.y = 1.0
                 marker.scale.z = 1.0
-                marker.color.r = 0.5 if step.foot_index else 0.0
+                marker.color.r = 0.8 if step.foot_index else 0.0
                 marker.color.g = 0.0
-                marker.color.b = 0.0 if step.foot_index else 0.5
-                marker.color.a = 0.5
+                marker.color.b = 0.0 if step.foot_index else 0.8
+                marker.color.a = 0.8
                 step_markers.markers.append(marker)
 
             self.markers.publish(step_markers)
