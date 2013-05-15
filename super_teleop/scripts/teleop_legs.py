@@ -22,7 +22,7 @@ import rospy
 import itertools
 
 PADDLE_NAMES = [ 'hydra_left', 'hydra_right' ]
-NUM_STEPS = 7
+NUM_STEPS = 40
 
 
 def grouper(n, iterable, fillvalue=None):
@@ -99,20 +99,20 @@ class AtlasTeleop():
         self.foot_markers.markers.append(right_foot)
 
         # Wait for transforms
-        self.tf.waitForTransform("world", PADDLE_NAMES[0], rospy.Time.now(), rospy.Duration(10.0))
-        self.tf.waitForTransform("world", PADDLE_NAMES[1], rospy.Time.now(), rospy.Duration(10.0))
+        self.tf.waitForTransform("world", PADDLE_NAMES[0], rospy.Time.now(), rospy.Duration(1.0))
+        self.tf.waitForTransform("world", PADDLE_NAMES[1], rospy.Time.now(), rospy.Duration(1.0))
         rospy.loginfo('Starting up leg teleop...')
 
         # Listen for hydra messages
-        rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)
-        rospy.Subscriber("/atlas/atlas_sim_interface_state", AtlasSimInterfaceState, self.process_atlas)
+        rospy.Subscriber("hydra_calib", Hydra, self.process_hydra, queue_size=1)
+        rospy.Subscriber("/atlas/atlas_sim_interface_state", AtlasSimInterfaceState, self.process_atlas, queue_size=1)
 
 
     def run(self):
         self.init()
         step_markers = MarkerArray()
 
-        r = rospy.Rate(20)
+        r = rospy.Rate(10)
         while not rospy.is_shutdown():
             step_markers.markers = []
 
@@ -183,14 +183,16 @@ class AtlasTeleop():
 
         # RESET robot if necessary
         if msg.paddles[0].buttons[5] and not self._isPressing:
-            self._isWalking = False
             self._isPressing = True
+            self._isWalking = False
+            self.steps = []
             rospy.loginfo('Harnessing robot...')
             self.reset_to_harnessed()
             rospy.loginfo('Harnessing complete.')
         elif msg.paddles[1].buttons[5] and not self._isPressing:
-            self._isWalking = False
             self._isPressing = True
+            self._isWalking = False
+            self.steps = []
             rospy.loginfo('Resetting robot...')
             self.reset_to_standing()
             rospy.loginfo('Resetting complete.')
@@ -270,13 +272,13 @@ class AtlasTeleop():
         # Check if we have finished walking
         if state.behavior_feedback.walk_feedback.current_step_index >= len(self.steps):
 
-            # Clear step queue
-            self.steps = []
-        
             # Reset robot to standing
             stand_goal = AtlasSimInterfaceCommand()
-            stand_goal = AtlasSimInterfaceCommand.STAND
+            stand_goal.behavior = AtlasSimInterfaceCommand.STAND
             self.command.publish(stand_goal)
+
+            # Clear step queue
+            self.steps = []
             self._isWalking = False
 
         else:
