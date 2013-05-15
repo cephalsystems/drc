@@ -11,6 +11,7 @@ from razer_hydra.msg import Hydra
 
 from geometry_msgs.msg import Pose
 from std_msgs.msg import String
+from visualization_msgs.msg import MarkerArray, Marker
 
 import tf
 from tf.transformations import quaternion_from_euler
@@ -20,7 +21,6 @@ import math
 import rospy
 
 PADDLE_NAMES = [ 'left', 'right' ]
-STEP_NAMES = [ 'step1', 'step2', 'step3' ]
 NUM_STEPS = 3
 
 class AtlasTeleop():
@@ -38,12 +38,13 @@ class AtlasTeleop():
         self._isPressing = False;
         
         # Connects to necessary command topics
-        self.command = rospy.Publisher('/atlas/atlas_sim_interface_command', \
-          AtlasSimInterfaceCommand)
-        self.mode = rospy.Publisher('/atlas/mode', String, None, False, \
-          True, None)
-        self.control_mode = rospy.Publisher('/atlas/control_mode', \
-          String, None, False, True, None)
+        self.command = rospy.Publisher('/atlas/atlas_sim_interface_command', 
+                                       AtlasSimInterfaceCommand)
+        self.mode = rospy.Publisher('/atlas/mode', String, None, False, 
+                                    True, None)
+        self.control_mode = rospy.Publisher('/atlas/control_mode', 
+                                            String, None, False, True, None)
+        self.markers = rospy.Publisher('/steps', MarkerArray)
 
         # Connect to TF
         self.tf = tf.TransformListener()
@@ -54,27 +55,36 @@ class AtlasTeleop():
 
     def run(self):
         self.init()
-        br = tf.TransformBroadcaster()
+        step_markers = MarkerArray()
 
-        r = rospy.Rate(100)
+        r = rospy.Rate(30)
         while not rospy.is_shutdown():
+            step_markers.markers = []
+
             for (i, step) in enumerate(self.steps):
-                br.sendTransform([ step.pose.position.x,
-                                   step.pose.position.y,
-                                   step.pose.position.z ],
-                                 [ step.pose.orientation.x,
-                                   step.pose.orientation.y,
-                                   step.pose.orientation.z,
-                                   step.pose.orientation.w ],
-                                 rospy.Time.now(),
-                                 STEP_NAMES[i],
-                                 "world")
-            for i in xrange(len(self.steps), NUM_STEPS):
-                br.sendTransform([ 0, 0, 0 ],
-                                 [ 1, 0, 0, 0 ],
-                                 rospy.Time.now(),
-                                 STEP_NAMES[i],
-                                 "world")
+                marker = Marker()
+                marker.header.frame_id = "world"
+                marker.header.stamp = rospy.Time.now()
+                marker.ns = "step"
+                marker.id = i
+                marker.action = Marker.ADD
+                marker.type = Marker.MESH_RESOURCE
+                marker.mesh_resource = \
+                    "package://atlas/meshes/r_foot.dae" \
+                    if step.foot_index else \
+                    "package://atlas/meshes/l_foot.dae"
+                marker.lifetime = rospy.Duration.from_sec(0.2)
+                marker.pose = step.pose
+                marker.scale.x = 1.0
+                marker.scale.y = 1.0
+                marker.scale.z = 1.0
+                marker.color.r = 0.0
+                marker.color.g = 0.5
+                marker.color.b = 0.5
+                marker.color.a = 1.0
+                step_markers.markers.append(marker)
+
+            self.markers.publish(step_markers)
             r.sleep()
 
 
