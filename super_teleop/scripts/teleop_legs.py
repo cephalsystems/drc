@@ -45,9 +45,49 @@ class AtlasTeleop():
         self.control_mode = rospy.Publisher('/atlas/control_mode', 
                                             String, None, False, True, None)
         self.markers = rospy.Publisher('/steps', MarkerArray)
+        self.feet = rospy.Publisher('/feet', MarkerArray)
 
         # Connect to TF
         self.tf = tf.TransformListener()
+
+        # Initialize foot markers
+        self.foot_markers = MarkerArray()
+
+        left_foot = Marker()
+        left_foot.header.frame_id = "world"
+        left_foot.header.stamp = rospy.Time.now()
+        left_foot.ns = "foot"
+        left_foot.id = 0
+        left_foot.action = Marker.ADD
+        left_foot.type = Marker.MESH_RESOURCE
+        left_foot.mesh_resource = "package://atlas/meshes/l_foot.dae"
+        left_foot.lifetime = rospy.Duration.from_sec(0.2)
+        left_foot.scale.x = 1.0
+        left_foot.scale.y = 1.0
+        left_foot.scale.z = 1.0
+        left_foot.color.r = 0.5
+        left_foot.color.g = 0.5
+        left_foot.color.b = 1.0
+        left_foot.color.a = 1.0
+        self.foot_markers.markers.append(left_foot)
+
+        right_foot = Marker()
+        right_foot.header.frame_id = "world"
+        right_foot.header.stamp = rospy.Time.now()
+        right_foot.ns = "foot"
+        right_foot.id = 1
+        right_foot.action = Marker.ADD
+        right_foot.type = Marker.MESH_RESOURCE
+        right_foot.mesh_resource = "package://atlas/meshes/r_foot.dae" 
+        right_foot.lifetime = rospy.Duration.from_sec(0.2)
+        right_foot.scale.x = 1.0
+        right_foot.scale.y = 1.0
+        right_foot.scale.z = 1.0
+        right_foot.color.r = 1.0
+        right_foot.color.g = 0.5
+        right_foot.color.b = 0.5
+        right_foot.color.a = 1.0
+        self.foot_markers.markers.append(right_foot)
 
         # Listen for hydra messages
         rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)
@@ -57,7 +97,7 @@ class AtlasTeleop():
         self.init()
         step_markers = MarkerArray()
 
-        r = rospy.Rate(30)
+        r = rospy.Rate(20)
         while not rospy.is_shutdown():
             step_markers.markers = []
 
@@ -73,7 +113,7 @@ class AtlasTeleop():
                     "package://atlas/meshes/r_foot.dae" \
                     if step.foot_index else \
                     "package://atlas/meshes/l_foot.dae"
-                marker.lifetime = rospy.Duration.from_sec(0.2)
+                marker.lifetime = rospy.Duration.from_sec(0.1)
                 marker.pose = step.pose
                 marker.scale.x = 1.0
                 marker.scale.y = 1.0
@@ -89,21 +129,28 @@ class AtlasTeleop():
 
 
     def process_hydra(self, msg):
+        feet = [ None, None ]
 
         # Drive the hydra around to place footsteps
         for (i, paddle) in enumerate(msg.paddles):
+            try:
+                (trans,rot) = self.tf.lookupTransform('world', 'hydra_' + PADDLE_NAMES[i],
+                                                      rospy.Time(0))
+                feet[i] = self.compute_step(i, trans, rot)
+            except (tf.LookupException, 
+                    tf.ConnectivityException, 
+                    tf.ExtrapolationException) as e:
+                rospy.loginfo('Foot placement failure : ' + str(e))
+                return
             if paddle.buttons[2] and len(self.steps) < NUM_STEPS and not self._isPressing:
                 self._isPressing = True
-                try:
-                    (trans,rot) = self.tf.lookupTransform('world', 'hydra_' + PADDLE_NAMES[i], 
-                                                          rospy.Time(0))
-                    rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
-                    self.add_step(i, trans, rot)
-                except (tf.LookupException, 
-                        tf.ConnectivityException, 
-                        tf.ExtrapolationException) as e:
-                    rospy.loginfo('Footstep failed : ' + str(e))
-                return
+                rospy.loginfo('Footstep added: ' + PADDLE_NAMES[i])
+                self.steps.append(feet[i])
+
+        # Publish new footstep positions
+        self.foot_markers.markers[0].pose = feet[0].pose
+        self.foot_markers.markers[1].pose = feet[1].pose
+        self.feet.publish(self.foot_markers)
 
         # Undo a step if some button is pressed
         for (i, paddle) in enumerate(msg.paddles):
@@ -156,7 +203,7 @@ class AtlasTeleop():
 
 
     # Construct a new step from the hydra's projected ground position
-    def add_step(self, is_right_foot, trans, rot):
+    def compute_step(self, is_right_foot, trans, rot):
         
         # Create a new step object
         step = AtlasBehaviorStepData()
@@ -165,6 +212,7 @@ class AtlasTeleop():
         step.step_index = len(self.steps) + 1
         step.foot_index = is_right_foot
         step.duration = self.params["Stride Duration"]["value"]
+        step.swing_height = self.params["Swing Height"]["value"]
             
         # Project foot position into XY plane
         step.pose.position.x = trans[0]
@@ -180,12 +228,8 @@ class AtlasTeleop():
         step.pose.orientation.z = Q[2]
         step.pose.orientation.w = Q[3]
 
-        # Hard coded swing height
-        step.swing_height = self.params["Swing Height"]["value"]
-
-        # Add this step onto the list
-        self.steps.append(step)
-
+        # Return computed position
+        return step
         
     # Builds a trajectory of step commands. 
     def walk(self):
