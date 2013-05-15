@@ -2,10 +2,10 @@
 import roslib; roslib.load_manifest('super_teleop')
 
 from atlas_msgs.msg import AtlasSimInterfaceCommand, \
+                           AtlasSimInterfaceState, \
                            AtlasBehaviorStepData, \
-                           AtlasBehaviorStepParams, \
-                           AtlasBehaviorStandParams, \
-                           AtlasBehaviorManipulateParams
+                           AtlasBehaviorWalkParams, \
+                           AtlasBehaviorStandParams
 from std_msgs.msg import Header
 from razer_hydra.msg import Hydra
 
@@ -19,9 +19,17 @@ from tf.transformations import euler_from_quaternion
 
 import math
 import rospy
+import itertools
 
-PADDLE_NAMES = [ 'left', 'right' ]
-NUM_STEPS = 3
+PADDLE_NAMES = [ 'hydra_left', 'hydra_right' ]
+NUM_STEPS = 7
+
+
+def grouper(n, iterable, fillvalue=None):
+    "grouper(3, 'ABCDEFG', 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return itertools.izip_longest(*args, fillvalue=fillvalue)
+
 
 class AtlasTeleop():
     
@@ -36,6 +44,7 @@ class AtlasTeleop():
     
     def init(self):
         self._isPressing = False;
+        self._isWalking = False;
         
         # Connects to necessary command topics
         self.command = rospy.Publisher('/atlas/atlas_sim_interface_command', 
@@ -89,9 +98,15 @@ class AtlasTeleop():
         right_foot.color.a = 1.0
         self.foot_markers.markers.append(right_foot)
 
+        # Wait for transforms
+        self.tf.waitForTransform("world", PADDLE_NAMES[0], rospy.Time.now(), rospy.Duration(10.0))
+        self.tf.waitForTransform("world", PADDLE_NAMES[1], rospy.Time.now(), rospy.Duration(10.0))
+        rospy.loginfo('Starting up leg teleop...')
+
         # Listen for hydra messages
         rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)
-    
+        rospy.Subscriber("/atlas/atlas_sim_interface_state", AtlasSimInterfaceState, self.process_atlas)
+
 
     def run(self):
         self.init()
@@ -134,8 +149,7 @@ class AtlasTeleop():
         # Drive the hydra around to place footsteps
         for (i, paddle) in enumerate(msg.paddles):
             try:
-                (trans,rot) = self.tf.lookupTransform('world', 'hydra_' + PADDLE_NAMES[i],
-                                                      rospy.Time(0))
+                (trans,rot) = self.tf.lookupTransform('world', PADDLE_NAMES[i], rospy.Time(0))
                 feet[i] = self.compute_step(i, trans, rot)
             except (tf.LookupException, 
                     tf.ConnectivityException, 
@@ -161,23 +175,25 @@ class AtlasTeleop():
 
         # If we are happy with the footsteps then walk
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[0] and len(self.steps) == NUM_STEPS and not self._isPressing:
+            if paddle.buttons[0] and len(self.steps) > 3 and not self._isPressing:
                 self._isPressing = True
                 rospy.loginfo('Walking!')
-                self.walk()
+                self._isWalking = True
                 return
 
         # RESET robot if necessary
         if msg.paddles[0].buttons[5] and not self._isPressing:
-                self._isPressing = True
-                rospy.loginfo('Harnessing robot...')
-                self.reset_to_harnessed()
-                rospy.loginfo('Harnessing complete.')
+            self._isWalking = False
+            self._isPressing = True
+            rospy.loginfo('Harnessing robot...')
+            self.reset_to_harnessed()
+            rospy.loginfo('Harnessing complete.')
         elif msg.paddles[1].buttons[5] and not self._isPressing:
-                self._isPressing = True
-                rospy.loginfo('Resetting robot...')
-                self.reset_to_standing()
-                rospy.loginfo('Resetting complete.')
+            self._isWalking = False
+            self._isPressing = True
+            rospy.loginfo('Resetting robot...')
+            self.reset_to_standing()
+            rospy.loginfo('Resetting complete.')
 
         # If no buttons are pushed, clear the debouncing
         if not any(msg.paddles[0].buttons) and not any(msg.paddles[1].buttons):
@@ -231,27 +247,43 @@ class AtlasTeleop():
         # Return computed position
         return step
         
-    # Builds a trajectory of step commands. 
-    def walk(self):
+    # Send a trajectory of step commands when walking
+    def process_atlas(self, state):
+        if not self._isWalking:
+            return
+
         walk_goal = AtlasSimInterfaceCommand()
         walk_goal.behavior = AtlasSimInterfaceCommand.WALK
         walk_goal.walk_params.use_demo_walk = False
 
         # 0 for full BDI control, 255 for PID control
-        walk_goal.k_effort =  [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+        walk_goal.k_effort =  [0] * 28
                
         # Create a dummy step
         dummy_step = AtlasBehaviorStepData()
         dummy_step.step_index = 0
         dummy_step.foot_index = 1 - self.steps[0].foot_index
 
-        # Load in the step array
-        walk_goal.walk_params.step_data = [ dummy_step ] + self.steps
+        # Load in the step array and pad it out
+        steps = [ dummy_step ] + self.steps + [ dummy_step ] * 4
+
+        # Check if we have finished walking
+        if state.behavior_feedback.walk_feedback.current_step_index >= len(self.steps):
+
+            # Clear step queue
+            self.steps = []
         
-        # Send command to Atlas
-        self.command.publish(walk_goal)
-        self.steps = []
+            # Reset robot to standing
+            stand_goal = AtlasSimInterfaceCommand()
+            stand_goal = AtlasSimInterfaceCommand.STAND
+            self.command.publish(stand_goal)
+            self._isWalking = False
+
+        else:
+            # Send next steps to ATLAS
+            next_idx = state.behavior_feedback.walk_feedback.next_step_index_needed
+            walk_goal.walk_params.step_data = steps[next_idx : next_idx + 4]
+            self.command.publish(walk_goal)
 
             
 if __name__ == '__main__':
