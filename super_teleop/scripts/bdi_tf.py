@@ -18,9 +18,9 @@ class BdiTf():
 
     def init(self):
         # Connects to necessary topics
-        rospy.Subscriber('atlas/atlas_sim_interface_state', 
+        rospy.Subscriber('atlas/atlas_sim_interface_state_throttle', 
                          AtlasSimInterfaceState, self.atlas_callback)
-        rospy.Subscriber('/atlas/imu', Imu, self.imu_callback)
+        rospy.Subscriber('/atlas/imu_throttle', Imu, self.imu_callback)
 
 
     def run(self):

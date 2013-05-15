@@ -1,12 +1,26 @@
 <launch>
   
   <include file="$(find razer_hydra)/hydra.launch">
-    <arg name="device" value="/dev/hydra0" />
+   <arg name="device" value="/dev/hydra1" />
   </include>
 
+  <!--
   <include file="$(find drc_launch)/web_services.launch" />
+  -->
 
   <include file="$(find drc_launch)/transforms.launch" />
+
+  <node name="atlas_state_throttle"
+	pkg="topic_tools" type="throttle" args="messages /atlas/atlas_state 100" />
+
+  <node name="atlas_sim_throttle"
+	pkg="topic_tools" type="throttle" args="messages /atlas/atlas_sim_interface_state 100" />
+
+  <node name="atlas_imu_throttle"
+	pkg="topic_tools" type="throttle" args="messages /atlas/imu 100" />
+
+  <node name="hydra_throttle"
+	pkg="topic_tools" type="throttle" args="messages /hydra_calib 100" />
 
   <node name="hydra_preprocessor" 
 	pkg="super_teleop" type="hydra_preprocessor.py" output="screen" />

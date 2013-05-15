@@ -104,8 +104,8 @@ class AtlasTeleop():
         rospy.loginfo('Starting up leg teleop...')
 
         # Listen for hydra messages
-        rospy.Subscriber("hydra_calib", Hydra, self.process_hydra, queue_size=1)
-        rospy.Subscriber("/atlas/atlas_sim_interface_state", AtlasSimInterfaceState, self.process_atlas, queue_size=1)
+        rospy.Subscriber("hydra_calib_throttle", Hydra, self.process_hydra, queue_size=1)
+        rospy.Subscriber("/atlas/atlas_sim_interface_state_throttle", AtlasSimInterfaceState, self.process_atlas, queue_size=1)
 
 
     def run(self):
