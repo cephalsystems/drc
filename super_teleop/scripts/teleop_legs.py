@@ -175,9 +175,9 @@ class AtlasTeleop():
 
         # If we are happy with the footsteps then walk
         for (i, paddle) in enumerate(msg.paddles):
-            if paddle.buttons[0] and len(self.steps) > 3 and not self._isPressing:
+            if paddle.buttons[0] and len(self.steps) >= 3 and not self._isPressing:
                 self._isPressing = True
-                rospy.loginfo('Walking!')
+                rospy.loginfo('Walking! ' + str(len(self.steps)))
                 self._isWalking = True
                 return
 
@@ -267,10 +267,10 @@ class AtlasTeleop():
         dummy_step.foot_index = 1 - self.steps[0].foot_index
 
         # Load in the step array and pad it out
-        steps = [ dummy_step ] + self.steps + [ dummy_step ] * 4
+        steps = [ dummy_step ] + self.steps + [ dummy_step ] * 5
 
         # Check if we have finished walking
-        if state.behavior_feedback.walk_feedback.current_step_index >= len(self.steps):
+        if state.behavior_feedback.walk_feedback.current_step_index >= len(self.steps) - 1:
 
             # Reset robot to standing
             stand_goal = AtlasSimInterfaceCommand()
@@ -280,6 +280,7 @@ class AtlasTeleop():
             # Clear step queue
             self.steps = []
             self._isWalking = False
+            rospy.loginfo('Completed walk!')
 
         else:
             # Send next steps to ATLAS
