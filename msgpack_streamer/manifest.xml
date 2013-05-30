@@ -1,0 +1,16 @@
+<package>
+  <description brief="msgpack_streamer">
+
+     msgpack_streamer transports data from 
+
+  </description>
+  <author>Pras Velagapudi</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/msgpack_streamer</url>
+
+  <depend package="roscpp"/>
+  <rosdep name="libmsgpack-dev"/>
+</package>
+
+
