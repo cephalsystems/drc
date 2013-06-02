@@ -1,0 +1,6 @@
+<launch>
+  <node name="pcl_stream" pkg="msgpack_streamer" type="pcl_stream" >
+    <param name="port" value="6666" />
+    <remap from="points" to="/multisense_sl/camera/points" />
+  </node>
+</launch>
