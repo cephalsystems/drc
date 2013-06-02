@@ -4,12 +4,12 @@
     <param name="port" value="6666" />
     <remap from="points" to="/multisense_sl/camera/points" />
   </node>
-<!--
+
   <node name="disparity_stream" pkg="msgpack_streamer" type="disparity_stream" >
     <param name="port" value="6667" />
     <remap from="points" to="/multisense_sl/camera/disparity" />
   </node>
--->
+
   <node name="frame_stream" pkg="msgpack_streamer" type="frame_stream" >
     <param name="port" value="6668" />
     <param name="fixed_frame" value="/utorso" />
