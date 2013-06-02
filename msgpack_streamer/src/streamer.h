@@ -2,20 +2,59 @@
  * Base implementation of object streaming.
  * Overridden to provide varying implementations.
  */
-#ifndef __STREAMER_H__
-#define __STREAMER_H__
+#ifndef STREAMER_H_
+#define STREAMER_H_
 
-template<typename T>
+#include <msgpack.hpp>
+#include <string>
+
+template<typename In, typename Out>
 class Streamer
 {
 private:
+  ros::Publisher pub;
+  ros::Subscriber sub;
   
 public:
-  Streamer(std::string topic) {};
-  virtual ~Streamer() {};
+  Streamer(std::string inTopic, std::string outTopic)
+  {
+    inPub = n.advertise<Out>(outTopic, 1);
+    inSub = n.subscribe<In>(inTopic, 1, inputCallback);
+  };
   
-  virtual pack() {};
-  virtual unpack() {};
+  virtual ~Streamer() {};
+
+  void inputCallback(const In* const msg)
+  {
+    msgpack::sbuffer buffer;
+    msgpack::packer<msgpack::sbuffer> pk(&buffer);
+    pack(pk);
+    // Send buffer out over TCP socket
+  }
+
+  void outputThread(void *arg)
+  {
+    msgpack::unpacker pk;
+    
+    while(ros::ok()) {
+      
+      // Read incoming data on socket
+      // pk.reserve_buffer(socket.available());
+      // pk.buffer_consumed(socket.read(pk.buffer(), socket.available()))
+      // TODO: do this
+
+      // Unpack resulting message
+      msg::unpacked result;
+      while(pk.next(&result)) {
+        msgpack::object obj = result.get();
+        In input = unpack(obj);
+        pub.publish(input);
+      }
+    }
+  }
+  
+  virtual void pack(msgpack::packer<msgpack::sbuffer> pk, In &input) {};
+  virtual In unpack(msgpack::object obj) {};
 };
 
-#endif /* __STREAMER_H__ */
+#endif /* STREAMER_H_ */
