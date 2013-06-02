@@ -30,4 +30,8 @@ rosbuild_add_executable(pcl_stream src/pcl_stream.cpp)
 target_link_libraries(pcl_stream msgpack)
 rosbuild_link_boost(pcl_stream thread system)
 
+rosbuild_add_executable(disparity_stream src/disparity_stream.cpp)
+target_link_libraries(disparity_stream msgpack)
+rosbuild_link_boost(disparity_stream thread system)
+
 
