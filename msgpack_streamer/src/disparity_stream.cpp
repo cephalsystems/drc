@@ -4,13 +4,15 @@
  */
 
 #include "ros/ros.h"
-#include "sensor_msgs/PointCloud.h"
+#include "stereo_msgs/DisparityImage.h"
 #include <msgpack.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/foreach.hpp>
 #include <vector>
+
+#define STREAM_TYPE stereo_msgs::DisparityImage
 
 using boost::asio::ip::tcp; 
 
@@ -26,27 +28,26 @@ void broadcast(msgpack::sbuffer &buffer)
     }
 }
 
-void pclCallback(const sensor_msgs::PointCloudConstPtr msg) 
+void callback(const boost::shared_ptr<const STREAM_TYPE> &msg) 
 {
   msgpack::sbuffer buffer;
   msgpack::packer<msgpack::sbuffer> pk(&buffer);
 
   pk.pack(msg->header.seq);
   pk.pack(msg->header.frame_id);
-  
-  std::vector<float> points;
-  BOOST_FOREACH( geometry_msgs::Point32 point, msg->points ) {
-    points.push_back(point.x);
-    points.push_back(point.y);
-    points.push_back(point.z);
-  }
-  pk.pack(points);
 
-  std::map<std::string, std::vector<float> > channels;
-  BOOST_FOREACH( sensor_msgs::ChannelFloat32 channel, msg->channels ) {
-    channels[channel.name] = channel.values;
-  }
-  pk.pack(channels);
+  pk.pack(msg->image.width);
+  pk.pack(msg->image.height);
+  pk.pack(msg->image.step);
+  pk.pack(msg->image.encoding);
+  pk.pack(msg->image.is_bigendian);
+  pk.pack(msg->image.data);
+
+  pk.pack(msg->f);
+  pk.pack(msg->T);
+  pk.pack(msg->min_disparity);
+  pk.pack(msg->max_disparity);
+  pk.pack(msg->delta_d);
 
   // Send this data to each client
   broadcast(buffer);
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nhp("~");
 
   // Subscribe to a point cloud stream
-  ros::Subscriber sub = nh.subscribe<sensor_msgs::PointCloud>("points", 10, pclCallback);
+  ros::Subscriber sub = nh.subscribe<STREAM_TYPE>("points", 10, callback);
 
   // Open a TCP socket
   int stream_port;

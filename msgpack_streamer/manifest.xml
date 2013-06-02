@@ -10,6 +10,7 @@
   <url>http://ros.org/wiki/msgpack_streamer</url>
 
   <depend package="roscpp"/>
+  <depend package="tf"/>
   <rosdep name="libmsgpack-dev"/>
 </package>
 
