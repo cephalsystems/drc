@@ -1,0 +1,21 @@
+<!-- Start up voodoo teleop driver -->
+<launch>
+  <node name="voodoo_driver"
+        pkg="voodoo_driver" type="driver">
+    <rosparam param="mapping">
+
+    </rosparam>
+    <remap from="joint_states" to="teleop_joint_states" />
+  </node>
+
+  <node name="voodoo_state_publisher"
+        pkg="robot_state_publisher" type="state_publisher">
+    <remap from="joint_states" to="teleop_joint_states" />
+    <param name="publish_frequency" value="100" />
+    <param name="tf_prefix" value="teleop" />
+  </node>
+
+  <node name="rviz"
+        pkg="rviz" type="rviz">
+  </node>
+</launch>
