@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
     }
 
     SetSerialAttribs(fd, B115200, 0); // set speed to 115,200 bps, 8n1
-    SetBlocking(fd, true);            // set blocking IO 
+    SetBlocking(fd, false);            // set blocking IO 
   }
 
   // Blink the LEDs of all connected devices and setup channels
@@ -164,7 +164,13 @@ int main(int argc, char *argv[])
     }
   }
 
+  // Set up fixed publish rate
+  int rate;
+  nh_private.param("rate", rate, 100);
+  ros::Rate r(rate);
+  
   // Begin loop of reading joint values
+  ROS_INFO("Starting voodoo driver.");
   while(ros::ok()) {
 
     // Send out query from every analog input on every device
@@ -173,7 +179,7 @@ int main(int argc, char *argv[])
       // Retrieve file descriptor
       int fd = ports[mapping.port_name];
       
-      // Igmore any previous data
+      // Ignore any previous data
       tcflush(fd, TCIFLUSH);
 
       // Send requests for all requested channels
@@ -216,7 +222,11 @@ int main(int argc, char *argv[])
 
     // Publish joint state message
     pub_joint_state.publish(joint_state);
+
+    // Wait for next timestep
+    r.sleep();
   }
+  ROS_INFO("Stopping voodoo driver.");
 
   // Close all relevant serial ports
   BOOST_FOREACH(const port_map_t::value_type &entry, ports)
