@@ -4,35 +4,52 @@
 #include <boost/foreach.hpp>
 
 /**
+ * Tuple class for holding a single IO mapping.
+ */
+class SerialEntry
+{
+ public:
+  SerialEntry() : joint(""), offset(0) {}
+  SerialEntry(const SerialEntry &that) {
+    joint = that.joint;
+    offset = that.offset;
+  }
+  SerialEntry(XmlRpc::XmlRpcValue &map_entry) : offset(0) {
+    ROS_ASSERT(map_entry.getType() == XmlRpc::XmlRpcValue::TypeStruct);
+
+    ROS_ASSERT(map_entry.hasMember("joint"));
+    joint = (std::string)map_entry["joint"];
+
+    if (map_entry.hasMember("offset"))
+      offset = (double)map_entry["offset"];
+  }
+  virtual ~SerialEntry() {}
+  
+  std::string joint;
+  double offset;
+};
+
+/**
  * Tuple class for holding serial port names and mappings of IO channel
  * to joint names.
  */
 class SerialMapping
 {
  public:
-  std::string port_name;
-  std::map<int, std::string> joint_names;
-};
-
-/**
- * Helper function to load single DAQ configuration for joint mapping.
- */
-SerialMapping LoadMapping(const std::string &port_name,
-                          XmlRpc::XmlRpcValue &mapping_param)
-{
-  SerialMapping mapping;
-  mapping.port_name = "/dev/" + port_name;
-
-  ROS_ASSERT(mapping_param.getType() == XmlRpc::XmlRpcValue::TypeStruct);
-
-  XmlRpc::XmlRpcValue::iterator it;
-  for (it = mapping_param.begin(); it != mapping_param.end(); ++it) {
-    ROS_ASSERT((*it).second.getType() == XmlRpc::XmlRpcValue::TypeString);
-    mapping.joint_names[atoi((*it).first.c_str())] = (std::string)(*it).second;
+  SerialMapping(const std::string name, XmlRpc::XmlRpcValue &map) {
+    ROS_ASSERT(map.getType() == XmlRpc::XmlRpcValue::TypeStruct);
+    port_name = "/dev/" + name;
+    
+    XmlRpc::XmlRpcValue::iterator it;
+    for (it = map.begin(); it != map.end(); ++it) {
+      joints[atoi((*it).first.c_str())] = SerialEntry((*it).second);
+    }
   }
-
-  return mapping;
-}
+  virtual ~SerialMapping() {}
+  
+  std::string port_name;
+  std::map<int, SerialEntry> joints;
+};
 
 /**
  * Helper function to load multiple DAQ configurations from ROS param.
@@ -49,7 +66,7 @@ std::vector<SerialMapping> LoadMappings(const ros::NodeHandle &nh,
 
   XmlRpc::XmlRpcValue::iterator it;
   for (it = mappings_param.begin(); it != mappings_param.end(); ++it) {
-    mappings.push_back(LoadMapping((*it).first, (*it).second));
+    mappings.push_back(SerialMapping((*it).first, (*it).second));
   }
   
   return mappings;

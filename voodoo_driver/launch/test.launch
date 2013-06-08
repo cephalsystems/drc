@@ -2,8 +2,12 @@
   <node name="voodoo_driver" pkg="voodoo_driver" type="driver">
     <rosparam param="mapping">
         ttyUSB0:
-            "1": apple
-            "2": bar
+            "1": 
+                joint: apple
+                offset: 0.0
+            "2": 
+                joint: banana
+                offset: 1.5707
     </rosparam>
   </node>
 </launch>
