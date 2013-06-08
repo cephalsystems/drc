@@ -17,7 +17,7 @@ int SetSerialAttribs(int fd, int speed, int parity)
   memset (&tty, 0, sizeof tty);
   if (tcgetattr (fd, &tty) != 0)
   {
-    ROS_ERROR("error %d from tcgetattr", errno);
+    ROS_ERROR("error %d from tcgetattr: %s", errno, strerror(errno));
     return -1;
   }
 
@@ -45,7 +45,7 @@ int SetSerialAttribs(int fd, int speed, int parity)
 
   if (tcsetattr (fd, TCSANOW, &tty) != 0)
   {
-    ROS_ERROR("error %d from tcsetattr", errno);
+    ROS_ERROR("error %d from tcsetattr: %s", errno, strerror(errno));
     return -1;
   }
   return 0;
@@ -57,7 +57,7 @@ void SetBlocking(int fd, bool should_block)
   memset (&tty, 0, sizeof tty);
   if (tcgetattr (fd, &tty) != 0)
   {
-    ROS_ERROR("error %d from tggetattr", errno);
+    ROS_ERROR("error %d from tggetattr: %s", errno, strerror(errno));
     return;
   }
 
@@ -65,7 +65,7 @@ void SetBlocking(int fd, bool should_block)
   tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
   if (tcsetattr (fd, TCSANOW, &tty) != 0)
-    ROS_ERROR("error %d setting term attributes", errno);
+    ROS_ERROR("error %d setting term attributes: %s", errno, strerror(errno));
 }
 
 /*

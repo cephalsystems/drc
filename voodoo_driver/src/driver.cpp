@@ -3,6 +3,10 @@
 #include <string>
 #include <boost/foreach.hpp>
 
+/**
+ * Tuple class for holding serial port names and mappings of IO channel
+ * to joint names.
+ */
 class SerialMapping
 {
  public:
@@ -10,13 +14,14 @@ class SerialMapping
   std::map<int, std::string> joint_names;
 };
 
-typedef XmlRpc::XmlRpcValue::ValueStruct::value_type struct_member;
-
+/**
+ * Helper function to load single DAQ configuration for joint mapping.
+ */
 SerialMapping LoadMapping(const std::string &port_name,
                           XmlRpc::XmlRpcValue &mapping_param)
 {
   SerialMapping mapping;
-  mapping.port_name = port_name;
+  mapping.port_name = "/dev/" + port_name;
 
   ROS_ASSERT(mapping_param.getType() == XmlRpc::XmlRpcValue::TypeStruct);
 
@@ -29,6 +34,9 @@ SerialMapping LoadMapping(const std::string &port_name,
   return mapping;
 }
 
+/**
+ * Helper function to load multiple DAQ configurations from ROS param.
+ */
 std::vector<SerialMapping> LoadMappings(const ros::NodeHandle &nh,
                                         const std::string &param_name)
 {
@@ -37,7 +45,6 @@ std::vector<SerialMapping> LoadMappings(const ros::NodeHandle &nh,
   XmlRpc::XmlRpcValue mappings_param;
   nh.getParam(param_name, mappings_param);
 
-  ROS_ERROR("%d", mappings_param.getType());
   ROS_ASSERT(mappings_param.getType() == XmlRpc::XmlRpcValue::TypeStruct);
 
   XmlRpc::XmlRpcValue::iterator it;
@@ -47,9 +54,18 @@ std::vector<SerialMapping> LoadMappings(const ros::NodeHandle &nh,
   
   return mappings;
 }
-  
+
+/**
+ * Typedef for file description mapping (so I can use BOOST_FOREACH)
+ */
+typedef std::map<std::string, int> port_map_t;
+
+/**
+ * Main entry point.
+ */
 int main(int argc, char *argv[])
 {
+  // Initialize ROS node
   ros::init(argc, argv, "voodoo_driver", ros::init_options::AnonymousName);
   ros::NodeHandle nh;
   ros::NodeHandle nh_private("~");
@@ -58,7 +74,7 @@ int main(int argc, char *argv[])
   std::vector<SerialMapping> mappings = LoadMappings(nh_private, "mapping");
 
   // Open all relevant serial ports
-  std::map<std::string, int> ports;
+  port_map_t ports;
   BOOST_FOREACH(SerialMapping mapping, mappings)
   {
     int fd = open(mapping.port_name.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
@@ -85,5 +101,14 @@ int main(int argc, char *argv[])
 
     // Publish joint state message
     
+  }
+
+  // Close all relevant serial ports
+  BOOST_FOREACH(const port_map_t::value_type &entry, ports)
+  {
+    if (close(entry.second) != 0) {
+      ROS_WARN("Error %d closing %s: %s",
+               errno, entry.first.c_str(), strerror(errno));
+    }
   }
 }
