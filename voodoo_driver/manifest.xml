@@ -1,0 +1,16 @@
+<package>
+  <description brief="voodoo_driver">
+
+     voodoo_driver takes DLP-IO20 input and converts it to a joint state.
+
+  </description>
+  <author>Pras Velagapudi</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/voodoo_driver</url>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+
+</package>
+
+
