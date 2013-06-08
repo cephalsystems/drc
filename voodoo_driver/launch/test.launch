@@ -1,0 +1,11 @@
+<launch>
+  <node name="voodoo_driver" pkg="voodoo_driver" type="driver">
+    <rosparam param="mapping" command="load" 
+              file="$(find voodoo_driver)/launch/test.yaml" />
+    <rosparam param="mapping">
+        ttyUSB0:
+            "1": apple
+            "2": bar
+    </rosparam>
+  </node>
+</launch>

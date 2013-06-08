@@ -37,6 +37,7 @@ std::vector<SerialMapping> LoadMappings(const ros::NodeHandle &nh,
   XmlRpc::XmlRpcValue mappings_param;
   nh.getParam(param_name, mappings_param);
 
+  ROS_ERROR("%d", mappings_param.getType());
   ROS_ASSERT(mappings_param.getType() == XmlRpc::XmlRpcValue::TypeStruct);
 
   XmlRpc::XmlRpcValue::iterator it;
