@@ -61,7 +61,6 @@ int main(int argc, char **argv)
   // Get a list of all frames of interest
   XmlRpc::XmlRpcValue frame_list;
   nhp.getParam("frames", frame_list);
-  ROS_INFO("FOO %d", frame_list.getType());
   ROS_ASSERT(frame_list.getType() == XmlRpc::XmlRpcValue::TypeArray);
   std::vector<std::string> frames;
   for (int32_t i = 0; i < frame_list.size(); ++i) {
