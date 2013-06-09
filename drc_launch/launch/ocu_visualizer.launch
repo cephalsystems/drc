@@ -17,6 +17,8 @@
       - /utorso
       - /mtorso
       - /ltorso
+      - /hydra_left
+      - /hydra_right
     </rosparam>
   </node>
 
