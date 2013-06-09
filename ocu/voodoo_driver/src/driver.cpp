@@ -133,28 +133,44 @@ int main(int argc, char *argv[])
   port_map_t ports;
   BOOST_FOREACH(const SerialMapping &mapping, mappings)
   {
+    // Open serial port file descriptor
     int fd = open(mapping.port_name.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
-    if (fd < 0) {
+    if (fd < 0)
+    {
       ROS_WARN("Error %d opening %s: %s",
                errno, mapping.port_name.c_str(), strerror(errno));
-    } else {
-      ports[mapping.port_name] = fd;
+      continue;
     }
+    
+    // Set speed to 115,200 bps, 8n1, no flow ctl
+    if (SetSerialAttribs(fd, B115200, 0) < 0) 
+      continue;
 
-    SetSerialAttribs(fd, B115200, 0); // set speed to 115,200 bps, 8n1
-    SetBlocking(fd, false);            // set blocking IO 
+    // Set 'non'-blocking IO (timeout in 500ms)
+    if (SetBlocking(fd, false) < 0)
+      continue;
+
+    // Store the valid file descriptor into mapping
+    ports[mapping.port_name] = fd;
   }
 
   // Blink the LEDs of all connected devices and setup channels
   BOOST_FOREACH(const SerialMapping &mapping, mappings)
   {
     // Retrieve file descriptor
-    int fd = ports[mapping.port_name];
+    port_map_t::iterator fd_iter = ports.find(mapping.port_name);
+    if (fd_iter == ports.end())
+      continue;
+    int fd = (*fd_iter).second;
     
     // Clear system buffer and blink LED
     tcflush(fd, TCIFLUSH);
     write(fd, "\x02\x28", 2);
 
+    // Turn on power to pullup pins
+    // TODO: make this configurable
+    write(fd, "\x05\x35\x12\x00\x01", 5); // Turn on pin RB7
+    
     // Setup requested channels
     BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
     {
@@ -177,7 +193,10 @@ int main(int argc, char *argv[])
     BOOST_FOREACH(const SerialMapping &mapping, mappings)
     {
       // Retrieve file descriptor
-      int fd = ports[mapping.port_name];
+      port_map_t::iterator fd_iter = ports.find(mapping.port_name);
+      if (fd_iter == ports.end())
+        continue;
+      int fd = (*fd_iter).second;
       
       // Ignore any previous data
       tcflush(fd, TCIFLUSH);
@@ -196,8 +215,11 @@ int main(int argc, char *argv[])
     
     BOOST_FOREACH(const SerialMapping &mapping, mappings)
     {
-      // Retrieve file description
-      int fd = ports[mapping.port_name];
+      // Retrieve file descriptor
+      port_map_t::iterator fd_iter = ports.find(mapping.port_name);
+      if (fd_iter == ports.end())
+        continue;
+      int fd = (*fd_iter).second;
     
       // Read responses for each requested channels
       BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)

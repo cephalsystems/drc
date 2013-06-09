@@ -48,24 +48,30 @@ int SetSerialAttribs(int fd, int speed, int parity)
     ROS_ERROR("error %d from tcsetattr: %s", errno, strerror(errno));
     return -1;
   }
+  
   return 0;
 }
 
-void SetBlocking(int fd, bool should_block)
+int SetBlocking(int fd, bool should_block)
 {
   struct termios tty;
   memset (&tty, 0, sizeof tty);
   if (tcgetattr (fd, &tty) != 0)
   {
     ROS_ERROR("error %d from tggetattr: %s", errno, strerror(errno));
-    return;
+    return -1;
   }
 
   tty.c_cc[VMIN]  = should_block ? 1 : 0;
   tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
 
   if (tcsetattr (fd, TCSANOW, &tty) != 0)
+  {
     ROS_ERROR("error %d setting term attributes: %s", errno, strerror(errno));
+    return -1;
+  }
+  
+  return 0;
 }
 
 /*

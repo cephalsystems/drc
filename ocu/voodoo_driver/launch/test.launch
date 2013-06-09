@@ -1,5 +1,6 @@
 <launch>
   <node name="voodoo_driver" pkg="voodoo_driver" type="driver">
+    <rosparam command="delete" param="mapping" />
     <rosparam param="mapping">
         ttyUSB0:
             "1": 
