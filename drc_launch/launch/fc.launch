@@ -1,0 +1,22 @@
+<launch>
+
+  <include file="$(find drc_launch)/transforms.launch">
+    <arg name="tf_prefix" value="atlas" />
+  </include>
+
+  <include file="$(find drc_launch)/atlas_replay.launch">
+    <!-- no args -->
+  </include>
+
+  <include file="$(find drc_launch)/atlas_snapshot.launch">
+    <!-- no args -->
+  </include>
+  
+  <node name="atlas_hokuyo_assembler"
+        type="laser_scan_assembler" pkg="laser_assembler">
+    <remap from="scan" to="/multisense_sl/laser/scan"/>
+    <param name="max_scans" type="int" value="400" />
+    <param name="fixed_frame" type="string" value="/pelvis" />
+  </node>
+  
+</launch>

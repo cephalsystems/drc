@@ -1,6 +1,6 @@
 <!-- This is the main launch file for the DRC Field Computer -->
 <launch>
-  <node name="voodoo_driver"
+  <node name="ocu_voodoo_driver"
         pkg="voodoo_driver" type="driver">
     <rosparam param="mapping">
         ttyUSB0:
@@ -22,7 +22,7 @@
     <remap from="joint_states" to="teleop_joint_states" />
   </node>
 
-  <node name="voodoo_state_publisher"
+  <node name="ocu_voodoo_state_publisher"
         pkg="robot_state_publisher" type="state_publisher">
     <remap from="joint_states" to="teleop_joint_states" />
     <param name="publish_frequency" value="100" />
