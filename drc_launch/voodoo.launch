@@ -3,7 +3,21 @@
   <node name="voodoo_driver"
         pkg="voodoo_driver" type="driver">
     <rosparam param="mapping">
-
+        ttyUSB0:
+            "0":
+                joint: "atlas::l_arm"
+            "1":
+                joint: "atlas::r_arm"
+            "2":
+                joint: "atlas::u_arm"
+            "8":
+                joint: "atlas::f_arm"
+            "9":
+                joint: "atlas::b_arm"
+            "11":
+                joint: "atlas::q_arm"
+            "13":
+                joint: "atlas::d_arm"
     </rosparam>
     <remap from="joint_states" to="teleop_joint_states" />
   </node>
@@ -13,9 +27,5 @@
     <remap from="joint_states" to="teleop_joint_states" />
     <param name="publish_frequency" value="100" />
     <param name="tf_prefix" value="teleop" />
-  </node>
-
-  <node name="rviz"
-        pkg="rviz" type="rviz">
   </node>
 </launch>
