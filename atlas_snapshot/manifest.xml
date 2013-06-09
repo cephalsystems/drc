@@ -1,0 +1,18 @@
+<package>
+  <description brief="atlas_snapshot">
+
+     atlas_snapshot compiles a set of all relevant information about the
+     robot and sends it out as a single ROS Message.
+
+  </description>
+  <author>Pras Velagapudi</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/atlas_snapshot</url>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+  <depend package="geometry_msgs"/>
+
+</package>
+
+
