@@ -192,7 +192,6 @@ int main(int argc, char *argv[])
     
     // Read back responses into joint state commands
     sensor_msgs::JointState joint_state;
-    joint_state.header.frame_id = "/robot";
     joint_state.header.stamp = ros::Time::now();
     
     BOOST_FOREACH(const SerialMapping &mapping, mappings)
