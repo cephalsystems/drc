@@ -1,23 +1,24 @@
 <!-- Start up voodoo teleop driver -->
 <launch>
   <node name="voodoo_driver"
-        pkg="voodoo_driver" type="driver">
+        pkg="voodoo_driver" type="driver" output="screen">
+    <param name="rate" value="60" />
     <rosparam param="mapping">
         ttyUSB0:
             "0":
-                joint: "atlas::l_arm"
+                joint: "l_arm_elx"
             "1":
-                joint: "atlas::r_arm"
+                joint: "l_arm_ely"
             "2":
-                joint: "atlas::u_arm"
+                joint: "l_arm_mwx"
             "8":
-                joint: "atlas::f_arm"
+                joint: "l_arm_shx"
             "9":
-                joint: "atlas::b_arm"
+                joint: "l_arm_usy"
             "11":
-                joint: "atlas::q_arm"
+                joint: "l_arm_uwy"
             "13":
-                joint: "atlas::d_arm"
+                joint: "neck_ay"
     </rosparam>
     <remap from="joint_states" to="teleop_joint_states" />
   </node>
@@ -25,7 +26,7 @@
   <node name="voodoo_state_publisher"
         pkg="robot_state_publisher" type="state_publisher">
     <remap from="joint_states" to="teleop_joint_states" />
-    <param name="publish_frequency" value="100" />
-    <param name="tf_prefix" value="teleop" />
+    <param name="publish_frequency" value="60" />
+    <!-- <param name="tf_prefix" value="teleop" /> -->
   </node>
 </launch>
