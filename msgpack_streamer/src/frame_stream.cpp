@@ -85,7 +85,13 @@ int main(int argc, char **argv)
     // Convert each frame to vector
     std::map<std::string, std::vector<double> > frame_entries;
     BOOST_FOREACH( std::string frame, frames ) {
-      try{
+
+      // Ignore transforms that we can't publish
+      if (!listener.canTransform(fixed_frame, frame, ros::Time(0), NULL))
+	continue;
+
+      // Attempt to lookup the transform and pack it
+      try {
 	tf::StampedTransform transform;
 	listener.lookupTransform(fixed_frame, frame, ros::Time(0), transform);
 
