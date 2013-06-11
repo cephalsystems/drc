@@ -282,6 +282,7 @@ int main(int argc, char *argv[])
     pub_joint_state.publish(joint_state);
 
     // Wait for next timestep
+    ros::spinOnce();
     r.sleep();
   }
   ROS_INFO("Stopping voodoo driver.");
