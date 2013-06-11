@@ -250,7 +250,8 @@ int main(int argc, char *argv[])
       BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
       {
         uint16_t adc_value;
-        if (read(fd, &adc_value, 2) == 2)
+        if (read(fd, ((char*)&adc_value), 1) > 0 && 
+            read(fd, ((char*)&adc_value) + 1, 1) > 0)
         {
           double joint_value = remap(adc_value,
                                      0, 512,
@@ -261,6 +262,7 @@ int main(int argc, char *argv[])
         }
         else
         {
+          ROS_WARN("Communication error to %s", mapping.port_name.c_str());
           break;
         }
       }
