@@ -77,9 +77,13 @@ int main(int argc, char **argv)
   boost::asio::io_service io_service;
   boost::thread server_thread(serverThreadFn, boost::ref(io_service), stream_port);
 
+  // Set up fixed publish rate
+  int rate;
+  nh_private.param("rate", rate, 100);
+  ros::Rate r(rate);
+
   // Update ROS and send out TFs at fixed-rate
   ROS_INFO("Starting MSGPACK TF stream.");
-  ros::Rate rate(60.0);
   while (nh.ok()) {
 
     // Convert each frame to vector
@@ -119,7 +123,7 @@ int main(int argc, char **argv)
 
     // Sleep until next cycle
     ros::spinOnce();  
-    rate.sleep();
+    r.sleep();
   }
   ROS_INFO("Stopping MSGPACK TF stream.");
 
