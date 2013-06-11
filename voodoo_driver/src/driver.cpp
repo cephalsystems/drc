@@ -14,14 +14,22 @@ const double DEFAULT_JOINT_MAX =  2.618; // +150 degrees
  * Helper function for linearly scaling a value within some input range
  * to a specified output range.  Linearly interpolates past the min and max.
  */
-double remap(const double input,
-             const double in_min,  const double in_max,
-             const double out_min, const double out_max)
+inline double remap(double input,
+                    double in_min,  double in_max,
+                    double out_min, double out_max)
 {
   const double in_range = (in_max - in_min);
   const double out_range = (out_max - out_min);
   
   return (((input - in_min) / in_range) * out_range) + out_min;
+}
+
+/**
+ * Helper function to clip a value between a specified range.
+ */
+inline double clip(double input, double min, double max)
+{
+  return std::min(std::max(input, min), max);
 }
 
 /**
@@ -189,18 +197,38 @@ int main(int argc, char *argv[])
     
     // Clear system buffer and blink LED
     tcflush(fd, TCIFLUSH);
-    write(fd, "\x02\x28", 2);
+    if (write(fd, "\x02\x28", 2) != 2) {
+      ROS_ERROR("Error %d writing to %s: %s",
+                errno, mapping.port_name.c_str(), strerror(errno));
+    }
 
     // Turn on power to pullup pins
     // TODO: make this configurable
-    write(fd, "\x05\x35\x12\x00\x01", 5); // Turn on pin RB7
+    if (write(fd, "\x05\x35\x12\x00\x01", 5) != 5) {
+      ROS_ERROR("Error %d writing to %s: %s",
+                errno, mapping.port_name.c_str(), strerror(errno));
+    }
     
     // Setup requested channels
     BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
     {
-      write(fd, "\x04\x42", 2); // Configure ADC
-      write(fd, &(entry.first), 1); // Select ADC channel
-      write(fd, "\x09", 1); // 9-bit ADC conversion (fastest)
+      // Configure ADC
+      if(write(fd, "\x04\x42", 2) != 2) {
+        ROS_ERROR("Error %d writing to %s: %s",
+                  errno, mapping.port_name.c_str(), strerror(errno));
+      }
+      
+      // Select ADC channel
+      if (write(fd, &(entry.first), 1) != 1) {
+        ROS_ERROR("Error %d writing to %s: %s",
+                  errno, mapping.port_name.c_str(), strerror(errno));
+      }
+
+      // 9-bit ADC conversion (fastest)
+      if (write(fd, "\x09", 1) != 1) {
+        ROS_ERROR("Error %d writing to %s: %s",
+                  errno, mapping.port_name.c_str(), strerror(errno));
+      }
     }
   }
 
@@ -228,8 +256,17 @@ int main(int argc, char *argv[])
       // Send requests for all requested channels
       BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
       {
-        write(fd, "\x03\x50", 2); // Request single ADC conversion
-        write(fd, &(entry.first), 1); // Select ADC channel
+        // Request single ADC conversion
+        if (write(fd, "\x03\x50", 2) != 2) {
+          ROS_ERROR("Error %d writing to %s: %s",
+                    errno, mapping.port_name.c_str(), strerror(errno));
+        }
+
+        // Select ADC channel
+        if (write(fd, &(entry.first), 1) != 1) {
+          ROS_ERROR("Error %d writing to %s: %s",
+                    errno, mapping.port_name.c_str(), strerror(errno));
+        }
       }
     }
     
@@ -253,10 +290,17 @@ int main(int argc, char *argv[])
         if (read(fd, ((char*)&adc_value), 1) > 0 && 
             read(fd, ((char*)&adc_value) + 1, 1) > 0)
         {
-          double joint_value = remap(adc_value,
-                                     0, 512,
-                                     entry.second.min, entry.second.max);
-          
+          // Scale the value to the configured range
+          double raw_joint_value = remap(adc_value,
+                                         0, 512,
+                                         entry.second.min, entry.second.max);
+
+          // Clip the value according to the URDF model
+          boost::shared_ptr<urdf::JointLimits> limits =
+              urdf.getJoint(entry.second.joint)->limits;
+          double joint_value = clip(raw_joint_value, limits->lower, limits->upper);
+
+          // Load the joint position into the joint state
           joint_state.name.push_back(entry.second.joint);
           joint_state.position.push_back(joint_value);
         }
