@@ -1,6 +1,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+#include <urdf/model.h>
 
 #include "simpleserial.h"
 #include <string>
@@ -113,6 +114,7 @@ std::vector<SerialMapping> LoadMappings(const ros::NodeHandle &nh,
  */
 typedef std::map<std::string, int> port_map_t;
 typedef std::map<uint8_t, SerialEntry> daq_map_t;
+typedef std::map<std::string, boost::shared_ptr<urdf::Joint> > joint_map_t;
 
 /**
  * Main entry point.
@@ -125,6 +127,22 @@ int main(int argc, char *argv[])
   ros::NodeHandle nh_private("~");
   ros::Publisher pub_joint_state =
       nh.advertise<sensor_msgs::JointState>("joint_states", 2);
+
+  // Retrieve current robot model
+  std::string robot_description;
+  if (!nh.getParam("robot_description", robot_description)) 
+  {
+    ROS_ERROR("No robot description parameter found!");
+    return -1;
+  }
+
+  // Load robot model from parameter string
+  urdf::Model urdf;
+  if (!urdf.initString(robot_description)) 
+  {
+    ROS_ERROR("Failed to parse the URDF");
+    return -1;
+  }
 
   // Get serial port mapping from ROS parameter
   std::vector<SerialMapping> mappings = LoadMappings(nh_private, "mapping");
@@ -144,11 +162,17 @@ int main(int argc, char *argv[])
     
     // Set speed to 115,200 bps, 8n1, no flow ctl
     if (SetSerialAttribs(fd, B115200, 0) < 0) 
+    {
+      ROS_WARN("Error setting baud rate on port %s.", mapping.port_name.c_str());
       continue;
+    }
 
     // Set 'non'-blocking IO (timeout in 500ms)
     if (SetBlocking(fd, false) < 0)
+    {
+      ROS_WARN("Error setting timeout on port %s.", mapping.port_name.c_str());
       continue;
+    }
 
     // Store the valid file descriptor into mapping
     ports[mapping.port_name] = fd;
@@ -213,6 +237,7 @@ int main(int argc, char *argv[])
     sensor_msgs::JointState joint_state;
     joint_state.header.stamp = ros::Time::now();
     
+    // Fill in joint states from serial mapping
     BOOST_FOREACH(const SerialMapping &mapping, mappings)
     {
       // Retrieve file descriptor
@@ -239,6 +264,16 @@ int main(int argc, char *argv[])
           break;
         }
       }
+    }
+
+    // Fill in remaining joints as zero-position
+    BOOST_FOREACH(const joint_map_t::value_type &joint, urdf.joints_) 
+    {
+      if (std::find(joint_state.name.begin(), joint_state.name.end(), joint.first)
+	  == joint_state.name.end()) {
+	joint_state.name.push_back(joint.first);
+	joint_state.position.push_back(0.0);
+      } 
     }
 
     // Publish joint state message
