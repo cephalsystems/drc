@@ -1,6 +1,10 @@
 #include <ros/ros.h>
-#include "atlas_snapshot/Snapshot.h"
 #include "atlas_joints.h"
+#include "atlas_snapshot/Snapshot.h"
+#include <sensor_msgs/Imu.h>
+#include <atlas_msgs/AtlasState.h>
+#include <std_msgs/Empty.h>
+#include <laser_assembler/AssembleScans.h>
 
 ros::Publisher pub_snapshot;
 ros::ServiceClient scan_client;
@@ -16,7 +20,7 @@ void snapshot_callback(const std_msgs::Empty &msg)
   atlas_snapshot::Snapshot snapshot;
   
   // Get current laser scan point cloud
-  laser_assember::AssembleScans::Request scan_request;
+  laser_assembler::AssembleScans::Request scan_request;
   if (scan_client.call(scan_request))
   {
     // TODO: serialize scan information somehow?
@@ -33,7 +37,7 @@ void snapshot_callback(const std_msgs::Empty &msg)
   pub_snapshot.publish(snapshot);
 }
 
-void atlas_callback(const atlas_msgs::AtlasState &state)
+void atlas_state_callback(const atlas_msgs::AtlasState &state)
 {
   state_ = state;
 }
@@ -55,7 +59,7 @@ int main(int argc, char *argv[])
 
   // Connect to a bunch of topics
   pub_snapshot = nh.advertise<atlas_snapshot::Snapshot>("snapshot", 1);
-  scan_client = nh.serviceClient<laser_assember::AssembleScans>("assemble_scans");
+  scan_client = nh.serviceClient<laser_assembler::AssembleScans>("assemble_scans");
   
   ros::Subscriber sub_joint_state =
       nh.subscribe<atlas_msgs::AtlasState>("/atlas/atlas_state", 1,

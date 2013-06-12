@@ -14,6 +14,7 @@
   <depend package="geometry_msgs"/>
   <depend package="std_msgs"/>
   <depend package="atlas_msgs"/>
+  <depend package="laser_assembler"/>
   <depend package="tf"/>
 </package>
 
