@@ -15,7 +15,7 @@ sensor_msgs::Imu imu_;
 /**
  * Calls service to update snapshot state with incoming message.
  */
-void snapshot_callback(const std_msgs::Empty &msg)
+void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
 {
   atlas_snapshot::Snapshot snapshot;
   
@@ -37,14 +37,14 @@ void snapshot_callback(const std_msgs::Empty &msg)
   pub_snapshot.publish(snapshot);
 }
 
-void atlas_state_callback(const atlas_msgs::AtlasState &state)
+void atlas_state_callback(const atlas_msgs::AtlasStateConstPtr &state)
 {
-  state_ = state;
+  state_ = (*state);
 }
 
-void imu_callback(const sensor_msgs::Imu &imu)
+void imu_callback(const sensor_msgs::ImuConstPtr &imu)
 {
-  imu_ = imu;
+  imu_ = (*imu);
 }
 
 /**
@@ -61,18 +61,15 @@ int main(int argc, char *argv[])
   pub_snapshot = nh.advertise<atlas_snapshot::Snapshot>("snapshot", 1);
   scan_client = nh.serviceClient<laser_assembler::AssembleScans>("assemble_scans");
   
-  ros::Subscriber sub_joint_state =
-      nh.subscribe<atlas_msgs::AtlasState>("/atlas/atlas_state", 1,
-                                           atlas_state_callback,
-                                           ros::TransportHints().udp());
-  ros::Subscriber sub_imu =
-      nh.advertise<sensor_msgs::Imu>("/atlas/imu", 1,
-                                     imu_callback,
-                                     ros::TransportHints().udp());
-  ros::Subscriber sub_request =
-      nh.subscribe<sensor_msgs::>("snapshot_request", 1,
-                                  snapshot_callback,
-                                  ros::TransportHints().udp());
+  ros::Subscriber sub_joint_state = nh.subscribe("/atlas/atlas_state", 1,
+                                                 atlas_state_callback,
+                                                 ros::TransportHints().udp());
+  ros::Subscriber sub_imu = nh.subscribe("/atlas/imu", 1,
+                                         imu_callback,
+                                         ros::TransportHints().udp());
+  ros::Subscriber sub_request = nh.subscribe("snapshot_request", 1,
+                                             snapshot_callback,
+                                             ros::TransportHints().udp());
 
   // Spin until shutdown
   ros::spin();
