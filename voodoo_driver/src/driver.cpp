@@ -63,7 +63,7 @@ class SerialEntry
       max = (double)map_entry["max"];
 
     if (map_entry.hasMember("offset"))
-      max = (double)map_entry["offset"];
+      offset = (double)map_entry["offset"];
   }
 
   virtual ~SerialEntry() {}
@@ -200,13 +200,9 @@ int main(int argc, char *argv[])
       continue;
     int fd = (*fd_iter).second;
     
-    // Clear system buffer and blink LED
+    // Clear system buffer
     tcflush(fd, TCIFLUSH);
-    if (write(fd, "\x02\x28", 2) != 2) {
-      ROS_ERROR("Error %d writing to %s: %s",
-                errno, mapping.port_name.c_str(), strerror(errno));
-    }
-
+    
     // Turn on power to pullup pins
     // TODO: make this configurable
     if (write(fd, "\x05\x35\x12\x00\x01", 5) != 5) {
@@ -214,26 +210,10 @@ int main(int argc, char *argv[])
                 errno, mapping.port_name.c_str(), strerror(errno));
     }
     
-    // Setup requested channels
-    BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
-    {
-      // Configure ADC
-      if(write(fd, "\x04\x42", 2) != 2) {
-        ROS_ERROR("Error %d writing to %s: %s",
-                  errno, mapping.port_name.c_str(), strerror(errno));
-      }
-      
-      // Select ADC channel
-      if (write(fd, &(entry.first), 1) != 1) {
-        ROS_ERROR("Error %d writing to %s: %s",
-                  errno, mapping.port_name.c_str(), strerror(errno));
-      }
-
-      // 9-bit ADC conversion (fastest)
-      if (write(fd, "\x09", 1) != 1) {
-        ROS_ERROR("Error %d writing to %s: %s",
-                  errno, mapping.port_name.c_str(), strerror(errno));
-      }
+    // Blink LED to indicate completed configuration
+    if (write(fd, "\x02\x28", 2) != 2) {
+      ROS_ERROR("Error %d writing to %s: %s",
+                errno, mapping.port_name.c_str(), strerror(errno));
     }
   }
 
@@ -297,7 +277,7 @@ int main(int argc, char *argv[])
         {
           // Scale the value to the configured range
           double raw_joint_value = remap(adc_value,
-                                         0, 512,
+                                         0, 1024,
                                          entry.second.min, entry.second.max);
           raw_joint_value += entry.second.offset;
 
