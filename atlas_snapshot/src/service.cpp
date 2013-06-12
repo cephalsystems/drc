@@ -19,9 +19,13 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
 {
   atlas_snapshot::Snapshot snapshot;
   
-  // Get current laser scan point cloud
-  laser_assembler::AssembleScans::Request scan_request;
-  if (scan_client.call(scan_request))
+  // Get current laser scan point cloud for last few seconds
+  laser_assembler::AssembleScans scan_params;
+  scan_params.request.begin = ros::Time::now() - ros::Duration(10.0);
+  scan_params.request.end = ros::Time::now();
+
+  // Ask assembler to build this point cloud
+  if (scan_client.call(scan_params))
   {
     // TODO: serialize scan information somehow?
     ROS_INFO("Retrieved some laser scans");
