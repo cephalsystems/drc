@@ -1,8 +1,0 @@
-#
-# Retrieves a snapshot of the robot at the current time.
-#
-String params
------
-PointCloud points
-JointState joints
-Pose imu
