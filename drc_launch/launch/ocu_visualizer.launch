@@ -14,11 +14,34 @@
     <param name="port" value="6668" />
     <param name="fixed_frame" value="/utorso" />
     <rosparam param="frames">
-      - /utorso
-      - /mtorso
-      - /ltorso
-      - /hydra_left
-      - /hydra_right
+      - utorso
+      - mtorso
+      - ltorso
+      - pelvis
+      - l_uglut
+      - l_lglut
+      - l_uleg
+      - l_lleg
+      - l_talus
+      - l_foot
+      - r_uglut
+      - r_lglut
+      - r_uleg
+      - r_lleg
+      - r_talus
+      - r_foot
+      - l_clav
+      - l_scap
+      - l_uarm
+      - l_larm
+      - l_farm
+      - l_hand
+      - r_clav
+      - r_scap
+      - r_uarm
+      - r_larm
+      - r_farm
+      - r_hand
     </rosparam>
   </node>
 

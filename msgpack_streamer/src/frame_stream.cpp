@@ -77,19 +77,29 @@ int main(int argc, char **argv)
   boost::asio::io_service io_service;
   boost::thread server_thread(serverThreadFn, boost::ref(io_service), stream_port);
 
+  // Set up fixed publish rate
+  int rate;
+  nh_private.param("rate", rate, 100);
+  ros::Rate r(rate);
+
   // Update ROS and send out TFs at fixed-rate
   ROS_INFO("Starting MSGPACK TF stream.");
-  ros::Rate rate(10.0);
   while (nh.ok()) {
 
     // Convert each frame to vector
-    std::map<std::string, std::vector<float> > frame_entries;
+    std::map<std::string, std::vector<double> > frame_entries;
     BOOST_FOREACH( std::string frame, frames ) {
-      try{
-	tf::StampedTransform transform;
-	listener.lookupTransform(frame, fixed_frame, ros::Time(0), transform);
 
-	std::vector<float> frame_entry;
+      // Ignore transforms that we can't publish
+      if (!listener.canTransform(fixed_frame, frame, ros::Time(0), NULL))
+	continue;
+
+      // Attempt to lookup the transform and pack it
+      try {
+	tf::StampedTransform transform;
+	listener.lookupTransform(fixed_frame, frame, ros::Time(0), transform);
+
+	std::vector<double> frame_entry;
 	frame_entry.push_back(transform.getOrigin().x());
 	frame_entry.push_back(transform.getOrigin().y());
 	frame_entry.push_back(transform.getOrigin().z());
@@ -113,7 +123,7 @@ int main(int argc, char **argv)
 
     // Sleep until next cycle
     ros::spinOnce();  
-    rate.sleep();
+    r.sleep();
   }
   ROS_INFO("Stopping MSGPACK TF stream.");
 

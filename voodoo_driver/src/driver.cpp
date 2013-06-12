@@ -1,6 +1,7 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+#include <urdf/model.h>
 
 #include "simpleserial.h"
 #include <string>
@@ -13,9 +14,9 @@ const double DEFAULT_JOINT_MAX =  2.618; // +150 degrees
  * Helper function for linearly scaling a value within some input range
  * to a specified output range.  Linearly interpolates past the min and max.
  */
-double remap(const double input,
-             const double in_min,  const double in_max,
-             const double out_min, const double out_max)
+inline double remap(double input,
+                    double in_min,  double in_max,
+                    double out_min, double out_max)
 {
   const double in_range = (in_max - in_min);
   const double out_range = (out_max - out_min);
@@ -24,18 +25,27 @@ double remap(const double input,
 }
 
 /**
+ * Helper function to clip a value between a specified range.
+ */
+inline double clip(double input, double min, double max)
+{
+  return std::min(std::max(input, min), max);
+}
+
+/**
  * Tuple class for holding a single IO mapping.
  */
 class SerialEntry
 {
  public:
-  SerialEntry() : joint(""), min(0), max(0) {}
+  SerialEntry() : joint(""), min(0), max(0), offset(0) {}
 
   SerialEntry(const SerialEntry &that)
   {
     joint = that.joint;
     min = that.min;
     max = that.max;
+    offset = that.offset;
   }
 
   SerialEntry(XmlRpc::XmlRpcValue &map_entry) :
@@ -51,6 +61,9 @@ class SerialEntry
 
     if (map_entry.hasMember("max"))
       max = (double)map_entry["max"];
+
+    if (map_entry.hasMember("offset"))
+      offset = (double)map_entry["offset"];
   }
 
   virtual ~SerialEntry() {}
@@ -58,6 +71,7 @@ class SerialEntry
   std::string joint;
   double min;
   double max;
+  double offset;
 };
 
 /**
@@ -113,6 +127,7 @@ std::vector<SerialMapping> LoadMappings(const ros::NodeHandle &nh,
  */
 typedef std::map<std::string, int> port_map_t;
 typedef std::map<uint8_t, SerialEntry> daq_map_t;
+typedef std::map<std::string, boost::shared_ptr<urdf::Joint> > joint_map_t;
 
 /**
  * Main entry point.
@@ -125,6 +140,22 @@ int main(int argc, char *argv[])
   ros::NodeHandle nh_private("~");
   ros::Publisher pub_joint_state =
       nh.advertise<sensor_msgs::JointState>("joint_states", 2);
+
+  // Retrieve current robot model
+  std::string robot_description;
+  if (!nh.getParam("robot_description", robot_description)) 
+  {
+    ROS_ERROR("No robot description parameter found!");
+    return -1;
+  }
+
+  // Load robot model from parameter string
+  urdf::Model urdf;
+  if (!urdf.initString(robot_description)) 
+  {
+    ROS_ERROR("Failed to parse the URDF");
+    return -1;
+  }
 
   // Get serial port mapping from ROS parameter
   std::vector<SerialMapping> mappings = LoadMappings(nh_private, "mapping");
@@ -144,11 +175,17 @@ int main(int argc, char *argv[])
     
     // Set speed to 115,200 bps, 8n1, no flow ctl
     if (SetSerialAttribs(fd, B115200, 0) < 0) 
+    {
+      ROS_WARN("Error setting baud rate on port %s.", mapping.port_name.c_str());
       continue;
+    }
 
     // Set 'non'-blocking IO (timeout in 500ms)
     if (SetBlocking(fd, false) < 0)
+    {
+      ROS_WARN("Error setting timeout on port %s.", mapping.port_name.c_str());
       continue;
+    }
 
     // Store the valid file descriptor into mapping
     ports[mapping.port_name] = fd;
@@ -163,20 +200,20 @@ int main(int argc, char *argv[])
       continue;
     int fd = (*fd_iter).second;
     
-    // Clear system buffer and blink LED
+    // Clear system buffer
     tcflush(fd, TCIFLUSH);
-    write(fd, "\x02\x28", 2);
-
+    
     // Turn on power to pullup pins
     // TODO: make this configurable
-    write(fd, "\x05\x35\x12\x00\x01", 5); // Turn on pin RB7
+    if (write(fd, "\x05\x35\x12\x00\x01", 5) != 5) {
+      ROS_ERROR("Error %d writing to %s: %s",
+                errno, mapping.port_name.c_str(), strerror(errno));
+    }
     
-    // Setup requested channels
-    BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
-    {
-      write(fd, "\x04\x42", 2); // Configure ADC
-      write(fd, &(entry.first), 1); // Select ADC channel
-      write(fd, "\x09", 1); // 9-bit ADC conversion (fastest)
+    // Blink LED to indicate completed configuration
+    if (write(fd, "\x02\x28", 2) != 2) {
+      ROS_ERROR("Error %d writing to %s: %s",
+                errno, mapping.port_name.c_str(), strerror(errno));
     }
   }
 
@@ -204,8 +241,17 @@ int main(int argc, char *argv[])
       // Send requests for all requested channels
       BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
       {
-        write(fd, "\x03\x50", 2); // Request single ADC conversion
-        write(fd, &(entry.first), 1); // Select ADC channel
+        // Request single ADC conversion
+        if (write(fd, "\x03\x50", 2) != 2) {
+          ROS_ERROR("Error %d writing to %s: %s",
+                    errno, mapping.port_name.c_str(), strerror(errno));
+        }
+
+        // Select ADC channel
+        if (write(fd, &(entry.first), 1) != 1) {
+          ROS_ERROR("Error %d writing to %s: %s",
+                    errno, mapping.port_name.c_str(), strerror(errno));
+        }
       }
     }
     
@@ -213,6 +259,7 @@ int main(int argc, char *argv[])
     sensor_msgs::JointState joint_state;
     joint_state.header.stamp = ros::Time::now();
     
+    // Fill in joint states from serial mapping
     BOOST_FOREACH(const SerialMapping &mapping, mappings)
     {
       // Retrieve file descriptor
@@ -225,26 +272,47 @@ int main(int argc, char *argv[])
       BOOST_FOREACH(const daq_map_t::value_type &entry, mapping.joints)
       {
         uint16_t adc_value;
-        if (read(fd, &adc_value, 2) == 2)
+        if (read(fd, ((char*)&adc_value), 1) > 0 && 
+            read(fd, ((char*)&adc_value) + 1, 1) > 0)
         {
-          double joint_value = remap(adc_value,
-                                     0, 512,
-                                     entry.second.min, entry.second.max);
-          
+          // Scale the value to the configured range
+          double raw_joint_value = remap(adc_value,
+                                         0, 1024,
+                                         entry.second.min, entry.second.max);
+          raw_joint_value += entry.second.offset;
+
+          // Clip the value according to the URDF model
+          boost::shared_ptr<urdf::JointLimits> limits =
+              urdf.getJoint(entry.second.joint)->limits;
+          double joint_value = clip(raw_joint_value, limits->lower, limits->upper);
+
+          // Load the joint position into the joint state
           joint_state.name.push_back(entry.second.joint);
           joint_state.position.push_back(joint_value);
         }
         else
         {
+          ROS_WARN("Communication error to %s", mapping.port_name.c_str());
           break;
         }
       }
+    }
+
+    // Fill in remaining joints as zero-position
+    BOOST_FOREACH(const joint_map_t::value_type &joint, urdf.joints_) 
+    {
+      if (std::find(joint_state.name.begin(), joint_state.name.end(), joint.first)
+	  == joint_state.name.end()) {
+	joint_state.name.push_back(joint.first);
+	joint_state.position.push_back(0.0);
+      } 
     }
 
     // Publish joint state message
     pub_joint_state.publish(joint_state);
 
     // Wait for next timestep
+    ros::spinOnce();
     r.sleep();
   }
   ROS_INFO("Stopping voodoo driver.");
