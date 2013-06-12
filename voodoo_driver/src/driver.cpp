@@ -38,13 +38,14 @@ inline double clip(double input, double min, double max)
 class SerialEntry
 {
  public:
-  SerialEntry() : joint(""), min(0), max(0) {}
+  SerialEntry() : joint(""), min(0), max(0), offset(0) {}
 
   SerialEntry(const SerialEntry &that)
   {
     joint = that.joint;
     min = that.min;
     max = that.max;
+    offset = that.offset;
   }
 
   SerialEntry(XmlRpc::XmlRpcValue &map_entry) :
@@ -60,6 +61,9 @@ class SerialEntry
 
     if (map_entry.hasMember("max"))
       max = (double)map_entry["max"];
+
+    if (map_entry.hasMember("offset"))
+      max = (double)map_entry["offset"];
   }
 
   virtual ~SerialEntry() {}
@@ -67,6 +71,7 @@ class SerialEntry
   std::string joint;
   double min;
   double max;
+  double offset;
 };
 
 /**
@@ -294,6 +299,7 @@ int main(int argc, char *argv[])
           double raw_joint_value = remap(adc_value,
                                          0, 512,
                                          entry.second.min, entry.second.max);
+          raw_joint_value += entry.second.offset;
 
           // Clip the value according to the URDF model
           boost::shared_ptr<urdf::JointLimits> limits =
