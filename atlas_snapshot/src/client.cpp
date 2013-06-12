@@ -1,6 +1,10 @@
 #include <ros/ros.h>
 #include "atlas_snapshot/Snapshot.h"
 #include "atlas_joints.h"
+#include <sensor_msgs/PointCloud.h>
+#include <sensor_msgs/JointState.h>
+#include <tf/transform_broadcaster.h>
+#include <boost/foreach.hpp>
 
 /**
  * Current robot state.
@@ -15,7 +19,9 @@ tf::Transform imu_;
 void snapshot_callback(const atlas_snapshot::Snapshot &msg)
 {
   // Decode quaternion as new imu transformation
-  imu_.setQuaternion(msg.imu_);
+  tf::Quaternion q;
+  tf::quaternionMsgToTF(msg.imu, q);
+  imu_.setRotation(q);
 
   // Decode joints in order
   joints_.name = ATLAS_JOINT_NAMES;
@@ -58,7 +64,7 @@ int main(int argc, char *argv[])
     pub_joint_state.publish(joints_);
 
     // Send out the latest point cloud
-    pub_points.publish(points_);
+    pub_points.publish(cloud_);
 
     // Send out the latest IMU transformation for the head
     br.sendTransform(tf::StampedTransform(imu_, ros::Time::now(),
