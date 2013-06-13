@@ -47,12 +47,13 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
                + M_PI) * ((float)width/(2*M_PI));
       int i = (atan2(point.z, sqrt(point.x*point.x + point.y*point.y))
                + M_PI) * ((float)height/(2*M_PI));
-      float d = sqrt(point.x*point.x + point.y*point.y + point.z*point.z) * 100.0;
+      float d = sqrt(point.x*point.x + point.y*point.y + point.z*point.z);
 
       // Store the closest point return
+      //      ROS_ERROR("%u %u -> %f", i, j, d);
       if (d < image_buffer.at<uint8_t>(i,j))
       {
-        image_buffer.at<uint8_t>(i,j) = d;
+        cv::circle(image_buffer, cv::Point(j,i), 2, d, -1);
       }
     }
     
