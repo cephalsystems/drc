@@ -12,7 +12,7 @@
  */
 sensor_msgs::PointCloud cloud_;
 sensor_msgs::JointState joints_;
-tf::Transform imu_;
+tf::Transform imu_ = tf::Transform::getIdentity();
 
 /**
  * Calls service to update snapshot state with incoming message.
