@@ -37,15 +37,15 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
     sensor_msgs::PointCloud &cloud = scan_params.response.cloud;
 
     // Allocate buffer to hold a depth panorama
-    cv::Mat image_buffer = cv::Mat(width, height, CV_8U, 255);
+    cv::Mat image_buffer = cv::Mat(height, width, CV_8U, 255);
 
     // Iterate through each point, projecting into the appropriate pixel
     BOOST_FOREACH(const geometry_msgs::Point32 &point, cloud.points)
     {
       // Find the appropriate equiangular pixel mapping
-      int i = (atan2(point.y, point.x)
+      int j = (atan2(point.y, point.x)
                + M_PI) * ((float)width/(2*M_PI));
-      int j = (atan2(point.z, sqrt(point.x*point.x + point.y*point.y))
+      int i = (atan2(point.z, sqrt(point.x*point.x + point.y*point.y))
                + M_PI) * ((float)height/(2*M_PI));
       float d = sqrt(point.x*point.x + point.y*point.y + point.z*point.z) * 100.0;
 
