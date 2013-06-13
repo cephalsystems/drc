@@ -72,7 +72,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nhp("~");
 
   // Subscribe to a point cloud stream
-  ros::Subscriber sub = nh.subscribe<STREAM_TYPE>("points", 10, callback);
+  ros::Subscriber sub = nh.subscribe<STREAM_TYPE>("image", 10, callback);
 
   // Open a TCP socket
   int stream_port;
@@ -82,10 +82,10 @@ int main(int argc, char **argv)
 
   // Update ROS
   ROS_INFO("Starting BSON stream: %s -> [%d]", 
-	   nh.resolveName("points").c_str(), stream_port);
+	   nh.resolveName("image").c_str(), stream_port);
   ros::spin();
   ROS_INFO("Stopping BSON stream: %s -> [%d]", 
-	   nh.resolveName("points").c_str(), stream_port);
+	   nh.resolveName("image").c_str(), stream_port);
 
   // Shutdown boost.asio
   io_service.stop();
