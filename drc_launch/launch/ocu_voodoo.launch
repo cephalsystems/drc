@@ -3,22 +3,44 @@
   <node name="voodoo_driver"
         pkg="voodoo_driver" type="driver" output="screen">
     <param name="rate" value="60" />
+    <rosparam param="mapping" command="delete"/>
     <rosparam param="mapping">
         ttyUSB0:
             "0":
-                joint: "l_arm_elx"
+                joint: "l_arm_usy"
+                min: 2.618
+                max: -2.618
+                offset: 0.0
             "1":
-                joint: "l_arm_ely"
+                joint: "l_arm_shx"
+                min: 2.618
+                max: -2.618
+                offset: -0.68
             "2":
                 joint: "l_arm_mwx"
+                min: -2.618
+                max: 2.618
+                offset: 0.0
             "8":
-                joint: "l_arm_shx"
+                joint: "l_arm_elx"
+                min: -2.618
+                max: 2.618
+                offset: 1.6
             "9":
-                joint: "l_arm_usy"
-            "11":
                 joint: "l_arm_uwy"
+                min: -2.618
+                max: 2.618
+                offset: 0.0
+            "11":
+                joint: "l_arm_ely"
+                min: -2.618
+                max: 2.618
+                offset: 3.141
             "13":
                 joint: "neck_ay"
+                min: 2.618
+                max: -2.618
+                offset: 0.0
     </rosparam>
     <remap from="joint_states" to="teleop_joint_states" />
   </node>
@@ -26,7 +48,7 @@
   <node name="voodoo_state_publisher"
         pkg="robot_state_publisher" type="state_publisher">
     <remap from="joint_states" to="teleop_joint_states" />
+	<!-- <remap from="/tf" to="/tf_ocu" /> -->
     <param name="publish_frequency" value="60" />
-    <!-- <param name="tf_prefix" value="teleop" /> -->
   </node>
 </launch>
