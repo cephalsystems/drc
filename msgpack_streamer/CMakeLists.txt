@@ -30,9 +30,9 @@ rosbuild_add_executable(pcl_stream src/pcl_stream.cpp)
 target_link_libraries(pcl_stream msgpack)
 rosbuild_link_boost(pcl_stream thread system)
 
-rosbuild_add_executable(disparity_stream src/disparity_stream.cpp)
-target_link_libraries(disparity_stream msgpack)
-rosbuild_link_boost(disparity_stream thread system)
+rosbuild_add_executable(image_stream src/image_stream.cpp)
+target_link_libraries(image_stream msgpack)
+rosbuild_link_boost(image_stream thread system)
 
 rosbuild_add_executable(frame_stream src/frame_stream.cpp)
 target_link_libraries(frame_stream msgpack)

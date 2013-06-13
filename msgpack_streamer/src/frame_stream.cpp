@@ -52,15 +52,15 @@ int main(int argc, char **argv)
   // Initialize ROS node
   ros::init(argc, argv, "msgpack_tf_stream");
   ros::NodeHandle nh;
-  ros::NodeHandle nhp("~");
+  ros::NodeHandle nh_private("~");
 
   // Get a world frame
   std::string fixed_frame = "/world";
-  nhp.getParam("fixed_frame", fixed_frame);
+  nh_private.getParam("fixed_frame", fixed_frame);
 
   // Get a list of all frames of interest
   XmlRpc::XmlRpcValue frame_list;
-  nhp.getParam("frames", frame_list);
+  nh_private.getParam("frames", frame_list);
   ROS_ASSERT(frame_list.getType() == XmlRpc::XmlRpcValue::TypeArray);
   std::vector<std::string> frames;
   for (int32_t i = 0; i < frame_list.size(); ++i) {
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 
   // Open a TCP socket
   int stream_port;
-  nhp.param<int>("port", stream_port, 6666);
+  nh_private.param<int>("port", stream_port, 6666);
   boost::asio::io_service io_service;
   boost::thread server_thread(serverThreadFn, boost::ref(io_service), stream_port);
 

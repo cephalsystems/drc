@@ -4,7 +4,7 @@
  */
 
 #include "ros/ros.h"
-#include "stereo_msgs/DisparityImage.h"
+#include "sensor_msgs/Image.h"
 #include <msgpack.hpp>
 #include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
@@ -12,7 +12,7 @@
 #include <boost/foreach.hpp>
 #include <vector>
 
-#define STREAM_TYPE stereo_msgs::DisparityImage
+#define STREAM_TYPE sensor_msgs::Image
 
 using boost::asio::ip::tcp; 
 
@@ -33,21 +33,11 @@ void callback(const boost::shared_ptr<const STREAM_TYPE> &msg)
   msgpack::sbuffer buffer;
   msgpack::packer<msgpack::sbuffer> pk(&buffer);
 
-  pk.pack(msg->header.seq);
   pk.pack(msg->header.frame_id);
-
-  pk.pack(msg->image.width);
-  pk.pack(msg->image.height);
-  pk.pack(msg->image.step);
-  pk.pack(msg->image.encoding);
-  pk.pack(msg->image.is_bigendian);
-  pk.pack(msg->image.data);
-
-  pk.pack(msg->f);
-  pk.pack(msg->T);
-  pk.pack(msg->min_disparity);
-  pk.pack(msg->max_disparity);
-  pk.pack(msg->delta_d);
+  pk.pack(msg->width);
+  pk.pack(msg->height);
+  pk.pack_raw(msg->data.size());
+  pk.pack_raw_body((const char*)(msg->data.data()), msg->data.size());
 
   // Send this data to each client
   broadcast(buffer);
@@ -77,7 +67,7 @@ void serverThreadFn(boost::asio::io_service& io_service, int port)
 int main(int argc, char **argv)
 {
   // Initialize ROS node
-  ros::init(argc, argv, "pcl_stream");
+  ros::init(argc, argv, "image_stream");
   ros::NodeHandle nh;
   ros::NodeHandle nhp("~");
 
