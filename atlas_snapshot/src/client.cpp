@@ -6,10 +6,14 @@
 #include <sensor_msgs/Image.h>
 #include <tf/transform_broadcaster.h>
 #include <boost/foreach.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
 
 /**
  * Current robot state.
  */
+sensor_msgs::Image image_;
 sensor_msgs::PointCloud cloud_;
 sensor_msgs::JointState joints_;
 tf::Transform imu_ = tf::Transform::getIdentity();
@@ -32,7 +36,26 @@ void snapshot_callback(const atlas_snapshot::Snapshot &msg)
     joints_.position.push_back(joint);
   }
 
-  // Decode point cloud... somehow?
+  // Decode panorama image into regular image
+  try
+  {
+    // Convert from JPEG back to OpenCV
+    const cv::Mat image_buffer = cv::Mat(msg.image);
+    cv::Mat image_matrix = cv::imdecode(image_buffer, -1);
+
+    // Create a simple timestamp
+    std_msgs::Header header;
+    header.stamp = ros::Time::now();
+
+    // Convert from OpenCV to image message
+    cv_bridge::CvImage image = cv_bridge::CvImage(header, "mono8", image_matrix);
+    image_ = *(image.toImageMsg());
+  }
+  catch (cv_bridge::Exception& e)
+  {
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
 }
 
 /**
@@ -47,14 +70,16 @@ int main(int argc, char *argv[])
 
   // Connect to a bunch of topics
   tf::TransformBroadcaster br;
+
   ros::Publisher pub_joint_state =
-      nh.advertise<sensor_msgs::JointState>("joint_states", 2);
+      nh.advertise<sensor_msgs::JointState>("joint_states", 1);
   ros::Publisher pub_points =
-      nh.advertise<sensor_msgs::PointCloud>("points", 2);
-  ros::Publisher pub_image =
-      nh.advertise<sensor_msgs::Image>("image", 2);
+      nh.advertise<sensor_msgs::PointCloud>("points", 1);
   ros::Subscriber sub_snapshot = nh.subscribe("snapshot", 1, snapshot_callback);
 
+  image_transport::ImageTransport it(nh);
+  image_transport::Publisher pub_image = it.advertise("image", 1);
+  
   // Set up fixed publish rate
   int rate;
   nh_private.param("rate", rate, 100);
@@ -69,6 +94,9 @@ int main(int argc, char *argv[])
     // Send out the latest point cloud
     pub_points.publish(cloud_);
 
+    // Send out the latest image
+    pub_image.publish(image_);
+    
     // Send out the latest IMU transformation for the head
     br.sendTransform(tf::StampedTransform(imu_, ros::Time::now(),
                                           "world", "imu_link"));
