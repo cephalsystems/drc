@@ -5,6 +5,8 @@
 #include <atlas_msgs/AtlasState.h>
 #include <std_msgs/Empty.h>
 #include <laser_assembler/AssembleScans.h>
+#include <boost/foreach.hpp>
+#include <opencv2/opencv.hpp>
 
 ros::Publisher pub_snapshot;
 ros::ServiceClient scan_client;
@@ -28,8 +30,37 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
   // Ask assembler to build this point cloud
   if (scan_client.call(scan_params))
   {
-    // TODO: serialize scan information somehow?
-    ROS_INFO("Retrieved some laser scans");
+    const int width = atlas_snapshot::Snapshot::WIDTH;
+    const int height = atlas_snapshot::Snapshot::HEIGHT;
+    
+    // Get reference to the point cloud
+    sensor_msgs::PointCloud &cloud = scan_params.response.cloud;
+
+    // Allocate buffer to hold a depth panorama
+    cv::Mat image_buffer = cv::Mat(width, height, CV_8U, 255);
+
+    // Iterate through each point, projecting into the appropriate pixel
+    BOOST_FOREACH(const geometry_msgs::Point32 &point, cloud.points)
+    {
+      // Find the appropriate equiangular pixel mapping
+      int i = (atan2(point.y, point.x)
+               + M_PI) * ((float)width/(2*M_PI));
+      int j = (atan2(point.z, sqrt(point.x*point.x + point.y*point.y))
+               + M_PI) * ((float)height/(2*M_PI));
+      float d = sqrt(point.x*point.x + point.y*point.y + point.z*point.z) * 100.0;
+
+      // Store the closest point return
+      if (d < image_buffer.at<uint8_t>(i,j))
+      {
+        image_buffer.at<uint8_t>(i,j) = d;
+      }
+    }
+    
+    // Encode image into jpg and store in snapshot
+    // Based on: http://stackoverflow.com/a/9930442
+    cv::vector<uchar> jpeg_buffer;
+    cv::imencode(".jpg", image_buffer, jpeg_buffer, std::vector<int>());
+    snapshot.image = jpeg_buffer;
   }
 
   // Load up current IMU value
