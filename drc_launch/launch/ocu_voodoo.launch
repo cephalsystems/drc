@@ -1,7 +1,11 @@
 <!-- Start up voodoo teleop driver -->
 <launch>
-  <node name="voodoo_driver"
-        pkg="voodoo_driver" type="driver" output="screen">
+  <arg name="output" default="log" />
+  
+  <node name="voodoo_driver" ns="voodoo"
+        pkg="voodoo_driver" type="driver" 
+        output="$(arg output)">
+    <remap from="robot_description" to="/robot_description" />
     <param name="rate" value="60" />
     <rosparam param="mapping" command="delete"/>
     <rosparam param="mapping">
@@ -42,13 +46,13 @@
                 max: -2.618
                 offset: 0.0
     </rosparam>
-    <remap from="joint_states" to="teleop_joint_states" />
   </node>
 
-  <node name="voodoo_state_publisher"
-        pkg="robot_state_publisher" type="state_publisher">
-    <remap from="joint_states" to="teleop_joint_states" />
-	<!-- <remap from="/tf" to="/tf_ocu" /> -->
+  <node name="voodoo_state_publisher" ns="voodoo"
+        pkg="robot_state_publisher" type="state_publisher"
+        output="$(arg output)">
+    <remap from="robot_description" to="/robot_description" />
+    <remap from="/tf" to="/tf_ocu" />
     <param name="publish_frequency" value="60" />
   </node>
 </launch>

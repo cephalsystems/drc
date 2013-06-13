@@ -1,16 +1,21 @@
 <launch>
+  <arg name="output" default="log" />
 
-  <node name="pcl_stream" pkg="msgpack_streamer" type="pcl_stream" >
+  <node name="pcl_stream" pkg="msgpack_streamer" type="pcl_stream" 
+        output="$(arg output)" respawn="true">
     <param name="port" value="6666" />
     <remap from="points" to="/multisense_sl/camera/points" />
   </node>
 
-  <node name="disparity_stream" pkg="msgpack_streamer" type="disparity_stream" >
+  <node name="disparity_stream" pkg="msgpack_streamer" type="disparity_stream"
+        output="$(arg output)" respawn="true">
     <param name="port" value="6667" />
     <remap from="points" to="/multisense_sl/camera/disparity" />
   </node>
 
-  <node name="frame_stream" pkg="msgpack_streamer" type="frame_stream" >
+  <node name="frame_stream" pkg="msgpack_streamer" type="frame_stream"
+        output="$(arg output)" respawn="true">
+    <remap from="/tf" to="/tf_ocu" />
     <param name="port" value="6668" />
     <param name="fixed_frame" value="/utorso" />
     <rosparam param="frames">
