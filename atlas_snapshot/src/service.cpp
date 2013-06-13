@@ -17,6 +17,7 @@ sensor_msgs::Imu imu_;
  */
 void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
 {
+  ROS_INFO("Creating robot snapshot.");
   atlas_snapshot::Snapshot snapshot;
   
   // Get current laser scan point cloud for last few seconds
@@ -39,6 +40,7 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
 
   // Send out assembled messages
   pub_snapshot.publish(snapshot);
+  ROS_INFO("Completed robot snapshot.");
 }
 
 void atlas_state_callback(const atlas_msgs::AtlasStateConstPtr &state)
@@ -67,13 +69,13 @@ int main(int argc, char *argv[])
   
   ros::Subscriber sub_joint_state = nh.subscribe("/atlas/atlas_state", 1,
                                                  atlas_state_callback,
-                                                 ros::TransportHints().udp());
+                                                 ros::TransportHints().udp().tcp());
   ros::Subscriber sub_imu = nh.subscribe("/atlas/imu", 1,
                                          imu_callback,
-                                         ros::TransportHints().udp());
+                                         ros::TransportHints().udp().tcp());
   ros::Subscriber sub_request = nh.subscribe("snapshot_request", 1,
                                              snapshot_callback,
-                                             ros::TransportHints().udp());
+                                             ros::TransportHints().udp().tcp());
 
   // Spin until shutdown
   ros::spin();
