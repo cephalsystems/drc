@@ -33,12 +33,17 @@ void callback(const boost::shared_ptr<const STREAM_TYPE> &msg)
   msgpack::sbuffer buffer;
   msgpack::packer<msgpack::sbuffer> pk(&buffer);
 
+  pk.pack_map(4);
+  pk.pack(std::string("frame"));
   pk.pack(msg->header.frame_id);
+  pk.pack(std::string("width"));
   pk.pack(msg->width);
+  pk.pack(std::string("height"));
   pk.pack(msg->height);
+  pk.pack(std::string("data"));
   pk.pack_raw(msg->data.size());
-  pk.pack_raw_body((const char*)(msg->data.data()), msg->data.size());
-
+  pk.pack_raw_body((const char *)(msg->data.data()), msg->data.size());
+  
   // Send this data to each client
   broadcast(buffer);
 }

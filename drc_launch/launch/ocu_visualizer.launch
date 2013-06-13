@@ -4,13 +4,13 @@
   <node name="pcl_stream" pkg="msgpack_streamer" type="pcl_stream" 
         output="$(arg output)" respawn="true">
     <param name="port" value="6666" />
-    <remap from="points" to="/multisense_sl/camera/points" />
+    <remap from="points" to="/snap/points" />
   </node>
 
-  <node name="disparity_stream" pkg="msgpack_streamer" type="disparity_stream"
+  <node name="image_stream" pkg="msgpack_streamer" type="image_stream"
         output="$(arg output)" respawn="true">
     <param name="port" value="6667" />
-    <remap from="points" to="/multisense_sl/camera/disparity" />
+    <remap from="image" to="/snap/image" />
   </node>
 
   <node name="frame_stream" pkg="msgpack_streamer" type="frame_stream"

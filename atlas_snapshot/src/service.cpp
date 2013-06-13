@@ -14,6 +14,15 @@ ros::ServiceClient scan_client;
 atlas_msgs::AtlasState state_;
 sensor_msgs::Imu imu_;
 
+inline double remap(double input,
+                    double old_min, double old_max,
+                    double new_min, double new_max)
+{
+  double old_range = (old_max - old_min);
+  double new_range = (new_max - new_min);
+  return (input - old_min) / old_range * new_range + new_min;
+}
+
 /**
  * Calls service to update snapshot state with incoming message.
  */
@@ -32,6 +41,8 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
   {
     const int width = atlas_snapshot::Snapshot::WIDTH;
     const int height = atlas_snapshot::Snapshot::HEIGHT;
+    const double fovx = atlas_snapshot::Snapshot::FOVX;
+    const double fovy = atlas_snapshot::Snapshot::FOVY;
     
     // Get reference to the point cloud
     sensor_msgs::PointCloud &cloud = scan_params.response.cloud;
@@ -43,17 +54,18 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
     BOOST_FOREACH(const geometry_msgs::Point32 &point, cloud.points)
     {
       // Find the appropriate equiangular pixel mapping
-      int j = (atan2(point.y, point.x)
-               + M_PI) * ((float)width/(2*M_PI));
-      int i = (atan2(point.z, sqrt(point.x*point.x + point.y*point.y))
-               + M_PI) * ((float)height/(2*M_PI));
-      float d = sqrt(point.x*point.x + point.y*point.y + point.z*point.z);
+      double j = remap(atan2(point.y, point.x),
+                       -fovx/2.0, fovx/2.0,
+                       0, (double)width);
+      double i = remap(atan2(point.z, sqrt(point.x*point.x + point.y*point.y)),
+                       -fovy/2.0, fovy/2.0,
+                       0, (double)height);
+      double d = sqrt(point.x*point.x + point.y*point.y);
 
       // Store the closest point return
-      //      ROS_ERROR("%u %u -> %f", i, j, d);
-      if (d < image_buffer.at<uint8_t>(i,j))
+      if (d < image_buffer.at<uint8_t>((int)i,(int)j))
       {
-        cv::circle(image_buffer, cv::Point(j,i), 2, d, -1);
+        cv::circle(image_buffer, cv::Point(j,i), 2, (char)d, -1);
       }
     }
     
