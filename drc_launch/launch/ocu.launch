@@ -1,16 +1,18 @@
 <!-- This is the main launch file for the DRC Field Computer -->
 <launch>
 
+<!--
   <include file="$(find drc_launch/ocu_hydra.launch">
-    <!-- no args -->
   </include>
+-->
 
   <include file="$(find drc_launch/ocu_voodoo.launch">
-    <!-- no args -->
+  </include>
+
+  <include file="$(find drc_launch/ocu_snapshot.launch">
   </include>
 
   <include file="$(find drc_launch)/ocu_visualization.launch">
-    <!-- no args -->
   </include>
 
 </launch>

@@ -3,6 +3,7 @@
 #include "atlas_joints.h"
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/Image.h>
 #include <tf/transform_broadcaster.h>
 #include <boost/foreach.hpp>
 
@@ -49,7 +50,9 @@ int main(int argc, char *argv[])
   ros::Publisher pub_joint_state =
       nh.advertise<sensor_msgs::JointState>("joint_states", 2);
   ros::Publisher pub_points =
-      nh.advertise<sensor_msgs::JointState>("points", 2);
+      nh.advertise<sensor_msgs::PointCloud>("points", 2);
+  ros::Publisher pub_image =
+      nh.advertise<sensor_msgs::Image>("image", 2);
   ros::Subscriber sub_snapshot = nh.subscribe("snapshot", 1, snapshot_callback);
 
   // Set up fixed publish rate

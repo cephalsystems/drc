@@ -1,0 +1,17 @@
+<!-- Start up atlas snapshot client and associated publishers -->
+<launch>
+  <arg name="output" default="log" />
+
+  <node name="atlas_snapshot_client" ns="snapshot"
+        pkg="atlas_snapshot" type="client" 
+        output="$(arg output)" respawn="true">
+    <remap from="/tf" to="/tf_ocu" />
+    <param name="rate" value="60" />
+  </node>
+
+  <node name="atlas_snapshot_state_publisher" ns="snapshot"
+        pkg="robot_state_publisher" type="state_publisher">
+    <remap from="/tf" to="/tf_ocu" />
+    <param name="publish_frequency" value="60" />
+  </node>
+</launch>
