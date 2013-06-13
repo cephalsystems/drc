@@ -19,6 +19,7 @@
 build/
 bin/
 lib/
+msg_gen/
 
 # Ignore editor files
 *~
