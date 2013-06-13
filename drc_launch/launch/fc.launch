@@ -1,19 +1,20 @@
 <launch>
+  <arg name="output" default="log" />
 
-  <include file="$(find drc_launch)/transforms.launch">
-    <arg name="tf_prefix" value="atlas" />
-  </include>
-
-  <include file="$(find drc_launch)/atlas_replay.launch">
-    <!-- no args -->
-  </include>
-
-  <include file="$(find drc_launch)/atlas_snapshot.launch">
-    <!-- no args -->
-  </include>
+  <!--
+  <node name="atlas_replay_service"
+        type="service" pkg="atlas_replay" 
+        output="$(arg output)" respawn="true">
+  </node>
+  -->
+  <node name="atlas_snapshot_service"
+        type="service" pkg="atlas_snapshot"
+        output="$(arg output)" respawn="true">
+  </node>
   
   <node name="atlas_hokuyo_assembler"
-        type="laser_scan_assembler" pkg="laser_assembler">
+        type="laser_scan_assembler" pkg="laser_assembler"
+        output="$(arg output)" respawn="true">
     <remap from="scan" to="/multisense_sl/laser/scan"/>
     <param name="max_scans" type="int" value="400" />
     <param name="fixed_frame" type="string" value="/pelvis" />
