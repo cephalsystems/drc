@@ -14,6 +14,18 @@
   </node>
   -->
 
+  <node name="atlas_sim_throttle"
+        pkg="topic_tools" type="throttle" 
+        args="messages /atlas/atlas_sim_interface_state 100" >
+  </node>
+  
+  <node name="atlas_walking_service"
+        pkg="super_teleop" type="teleop_legs.py"
+        output="$(arg output)" respawn="true">
+    <remap from="/atlas/atlas_sim_interface_state"
+           to="/atlas/atlas_sim_interface_state_throttle" />
+  </node>
+
   <node name="atlas_snapshot_service"
         pkg="atlas_snapshot" type="service"
         output="$(arg output)" respawn="true">
