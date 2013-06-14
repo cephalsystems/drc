@@ -1,5 +1,3 @@
-AtlasCommand[] commands
-float32[] times
+uint8 slot
 ---
-string status
-AtlasState state
+std_msgs/Empty empty
