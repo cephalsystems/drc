@@ -32,9 +32,9 @@ class AtlasTeleop(object):
                   'j': {"forward":0, "lateral":1, "turn": 0}, \
                   'k': {"forward":0, "lateral":0, "turn": 0}, \
                   'l': {"forward":0, "lateral":-1, "turn": 0}, \
-                  'm': {"forward":0, "lateral":0, "turn": 0.5}, \
+                  'm': {"forward":0, "lateral":0, "turn": 1}, \
                   ',': {"forward":-0.5, "lateral":0, "turn": 0}, \
-                  '.': {"forward":0, "lateral":0, "turn":-0.5}}
+                  '.': {"forward":0, "lateral":0, "turn":-1}}
 
     static_dir = {'U': {"forward":1, "lateral":0, "turn": 1}, \
                   'I': {"forward":1, "lateral":0, "turn": 0}, \
@@ -42,12 +42,12 @@ class AtlasTeleop(object):
                   'J': {"forward":0, "lateral":1, "turn": 0}, \
                   'K': {"forward":-1, "lateral":0, "turn": 0}, \
                   'L': {"forward":0, "lateral":-1, "turn": 0}, \
-                  'M': {"forward":0, "lateral":0, "turn": 0.5}, \
+                  'M': {"forward":0, "lateral":0, "turn": 1}, \
                   '<': {"forward":-0.5, "lateral":0, "turn": 0}, \
-                  '>': {"forward":0, "lateral":0, "turn":-0.5}}
+                  '>': {"forward":0, "lateral":0, "turn":-1}}
     
     # BDI Controller bindings 
-    params = {"Forward Stride Length":{ "value":0.15, "min":0, "max":1, \
+    params = {"Forward Stride Length":{ "value":0.10, "min":0, "max":1, \
                                 "type":"float"},
               "Stride Length Interval":{"value":0.05, "min":0, "max":1, \
                                 "type":"float"},
@@ -58,7 +58,7 @@ class AtlasTeleop(object):
                                 "type":"float"},
               "Walk Sequence Length":{"value":5, "min":1, "max":sys.maxint, \
                                 "type":"int"},
-              "Stride Width":{"value":0.2, "min":0, "max":1, "type":"float"},
+              "Stride Width":{"value":0.25, "min":0, "max":1, "type":"float"},
               "In Place Turn Size":{"value":math.pi / 16, "min":0, \
                                     "max":math.pi / 2, "type":"float"},
               "Turn Radius":{"value":2, "min":0.01, "max":100, "type":"float"},
@@ -114,14 +114,14 @@ class AtlasTeleop(object):
                 dir = self.dynamic_dir[command]
                 self.steps += self.build_steps(dir["forward"], dir["lateral"], dir["turn"], False)
             elif self.static_dir.has_key(command):
-                dir = self.dynamic_dir[command]
+                dir = self.static_dir[command]
                 self.steps += self.build_steps(dir["forward"], dir["lateral"], dir["turn"], True)
 
             self._isWalking = True;
             rospy.loginfo('Started walk with {0} steps'.format(len(self.steps)))
             while(self._isWalking):
                 pass
-            rospy.sleep(0.5)
+            rospy.sleep(1.0)
             rospy.loginfo('Completed walk with {0} steps'.format(len(self.steps)))
 
         return Empty
