@@ -89,16 +89,22 @@ int main(int argc, char *argv[])
   while(ros::ok()) {
     
     // Send out the latest joint state
-    joints_.header.stamp = ros::Time::now();
-    pub_joint_state.publish(joints_);
+    if (joints_.name.size() > 0) {
+      joints_.header.stamp = ros::Time::now();
+      pub_joint_state.publish(joints_);
+    }
 
     // Send out the latest point cloud
-    cloud_.header.stamp = ros::Time::now();
-    pub_points.publish(cloud_);
+    if (cloud_.points.size() > 0) {
+      cloud_.header.stamp = ros::Time::now();
+      pub_points.publish(cloud_);
+    }
 
     // Send out the latest image
-    image_.header.stamp = ros::Time::now();
-    pub_image.publish(image_);
+    if (image_.data.size() > 0) {
+      image_.header.stamp = ros::Time::now();
+      pub_image.publish(image_);
+    }
     
     // Send out the latest IMU transformation for the head
     br.sendTransform(tf::StampedTransform(imu_, ros::Time::now(),
