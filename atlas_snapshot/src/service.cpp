@@ -124,5 +124,7 @@ int main(int argc, char *argv[])
                                              ros::TransportHints().udp().tcp());
 
   // Spin until shutdown
+  ROS_INFO("Started snapshot service.");
   ros::spin();
+  ROS_INFO("Stopped snapshot service.");
 }
