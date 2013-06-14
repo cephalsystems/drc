@@ -163,9 +163,12 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
 
 bool play_service(atlas_replay::Play::Request &request,
                   atlas_replay::Play::Response &response) {
-  uint8_t slot = request.slot;
-  atlas_replay::Upload::Request trajectory = load_trajectory(slot);
-  return play_trajectory(trajectory);
+  BOOST_FOREACH(uint8_t slot, request.slots) {
+    atlas_replay::Upload::Request trajectory = load_trajectory(slot);
+    if (!play_trajectory(trajectory))
+      return false;
+  }
+  return true;
 }
 
 bool upload_service(atlas_replay::Upload::Request &request,
