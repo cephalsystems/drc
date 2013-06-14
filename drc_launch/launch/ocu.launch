@@ -19,4 +19,10 @@
     <arg name="output" value="$(arg output)" />
   </include>
 
+  <node name="panorama_view"
+        pkg="image_view" type="image_view" >
+    <remap from="/tf" to="/tf_ocu" />
+    <remap from="image" to="/snap/image" />
+  </node>
+
 </launch>
