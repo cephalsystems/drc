@@ -12,6 +12,7 @@
 
   <node name="atlas_snapshot_state_publisher" ns="snap"
         pkg="robot_state_publisher" type="state_publisher">
+    <remap from="robot_description" to="/robot_description" />
     <remap from="/tf" to="/tf_ocu" />
     <param name="tf_prefix" value="atlas" />
     <param name="publish_frequency" value="60" />
