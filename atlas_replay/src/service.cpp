@@ -188,7 +188,7 @@ bool upload_service(atlas_replay::Upload::Request &request,
 int main(int argc, char** argv)
 {
   // Initialize ROS node
-  ros::init(argc, argv, "atlas_replay");
+  ros::init(argc, argv, "atlas_replay_service");
   nh_ = new ros::NodeHandle();
   nh_private_ = new ros::NodeHandle("~");
 
