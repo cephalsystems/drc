@@ -71,14 +71,17 @@ class AtlasTeleop(object):
         self._isWalking = False;
         
         # Connects to necessary command topics
-        self.command = rospy.Publisher('/atlas/atlas_sim_interface_command', 
+        self.command = rospy.Publisher('/atlas/atlas_sim_interface_command', \
                                        AtlasSimInterfaceCommand)
-        self.mode = rospy.Publisher('/atlas/mode', String, None, False, 
+        self.mode = rospy.Publisher('/atlas/mode', String, None, False, \
                                     True, None)
-        self.control_mode = rospy.Publisher('/atlas/control_mode', 
+        self.control_mode = rospy.Publisher('/atlas/control_mode', \
                                             String, None, False, True, None)
         self.service = rospy.Service('walk', Walk, self.walk_service)
-
+        self.state = rospy.Subscriber("/atlas/atlas_sim_interface_state", \
+                                          AtlasSimInterfaceState, \
+                                          self.process_atlas, queue_size=1)
+        
     def run(self):
         self.init()
         rospy.loginfo('Starting up leg teleop...')
@@ -112,6 +115,8 @@ class AtlasTeleop(object):
             elif self.static_dir.has_key(command):
                 dir = self.dynamic_dir[command]
                 self.steps += self.build_steps(dir["forward"], dir["lateral"], dir["turn"], True)
+            elif command == 'r' or command =='R':
+                self.reset_to_standing()
 
         self._isWalking = True;
         rospy.loginfo('Started walk with {0} steps'.format(len(self.steps)))
@@ -300,7 +305,7 @@ class AtlasTeleop(object):
         steps = [ dummy_step ] + self.steps + [ dummy_step ] * 5
 
         # Check if we have finished walking
-        if state.behavior_feedback.walk_feedback.current_step_index >= len(self.steps) - 1:
+        if state.walk_feedback.current_step_index >= len(self.steps) - 1:
 
             # Reset robot to standing
             stand_goal = AtlasSimInterfaceCommand()
@@ -314,8 +319,8 @@ class AtlasTeleop(object):
 
         else:
             # Send next steps to ATLAS
-            next_idx = state.behavior_feedback.walk_feedback.next_step_index_needed
-            walk_goal.walk_params.step_data = steps[next_idx : next_idx + 4]
+            next_idx = state.walk_feedback.next_step_index_needed
+            walk_goal.walk_params.step_queue = steps[next_idx : next_idx + 4]
             self.command.publish(walk_goal)
 
             
