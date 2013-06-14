@@ -56,16 +56,18 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
       // Find the appropriate equiangular pixel mapping
       double j = remap(atan2(point.y, point.x),
                        -fovx/2.0, fovx/2.0,
-                       0, (double)width);
+                       (double)width, 0);
       double i = remap(atan2(point.z, sqrt(point.x*point.x + point.y*point.y)),
                        -fovy/2.0, fovy/2.0,
-                       0, (double)height);
-      double d = sqrt(point.x*point.x + point.y*point.y);
+                       (double)height, 0);
+      double d = remap(sqrt(point.x*point.x + point.y*point.y),
+                       0.0, 30.0,
+                       0, 255);
 
       // Store the closest point return
-      if (d < image_buffer.at<uint8_t>((int)i,(int)j))
+      if (d <= image_buffer.at<uint8_t>((int)i,(int)j))
       {
-        cv::circle(image_buffer, cv::Point(j,i), 2, (char)d, -1);
+        cv::circle(image_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
       }
     }
     
