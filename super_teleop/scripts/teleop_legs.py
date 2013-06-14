@@ -78,9 +78,9 @@ class AtlasTeleop(object):
         self.control_mode = rospy.Publisher('/atlas/control_mode', \
                                             String, None, False, True, None)
         self.service = rospy.Service('walk', Walk, self.walk_service)
-        self.state = rospy.Subscriber("/atlas/atlas_sim_interface_state", \
-                                          AtlasSimInterfaceState, \
-                                          self.process_atlas, queue_size=1)
+        self.listen = rospy.Subscriber("/atlas/atlas_sim_interface_state", \
+                                           AtlasSimInterfaceState, \
+                                           self.process_atlas, queue_size=1)
         
     def run(self):
         self.init()
@@ -105,26 +105,34 @@ class AtlasTeleop(object):
         self.control_mode.publish("Stand")
 
     def walk_service(self, req):
-        self._isWalking = False;
-        self.steps = []
-
         for command in req.commands:
+            self._isWalking = False;
+            self.steps = []
+            self.load_position()
+
             if self.dynamic_dir.has_key(command):
                 dir = self.dynamic_dir[command]
                 self.steps += self.build_steps(dir["forward"], dir["lateral"], dir["turn"], False)
             elif self.static_dir.has_key(command):
                 dir = self.dynamic_dir[command]
                 self.steps += self.build_steps(dir["forward"], dir["lateral"], dir["turn"], True)
-            elif command == 'r' or command =='R':
-                self.reset_to_standing()
 
-        self._isWalking = True;
-        rospy.loginfo('Started walk with {0} steps'.format(len(self.steps)))
-        while(self._isWalking):
-            pass
-        rospy.loginfo('Completed walk with {0} steps'.format(len(self.steps)))
+            self._isWalking = True;
+            rospy.loginfo('Started walk with {0} steps'.format(len(self.steps)))
+            while(self._isWalking):
+                pass
+            rospy.sleep(0.5)
+            rospy.loginfo('Completed walk with {0} steps'.format(len(self.steps)))
 
         return Empty
+
+    def load_position(self):
+        self.X = self.state.pos_est.position.x
+        self.Y = self.state.pos_est.position.y
+        self.theta = math.atan2(self.state.foot_pos_est[1].position.x - 
+                                self.state.foot_pos_est[0].position.x,
+                                self.state.foot_pos_est[0].position.y - 
+                                self.state.foot_pos_est[1].position.y)
 
     def build_steps(self, forward, lateral, turn, is_static):
         L = self.params["Forward Stride Length"]["value"]
@@ -217,7 +225,7 @@ class AtlasTeleop(object):
                     Y = turn * W/2 * math.cos(theta)
                     
              
-            Q = quaternion_from_euler(0, 0, theta)
+            Q = quaternion_from_euler(0, 0, theta + self.theta)
             step = AtlasBehaviorStepData()
             
             # One step already exists, so add one to index
@@ -232,8 +240,8 @@ class AtlasTeleop(object):
             
             step.duration = self.params["Stride Duration"]["value"]
             
-            step.pose.position.x = X
-            step.pose.position.y = Y
+            step.pose.position.x = self.X + math.cos(self.theta)*X - math.sin(self.theta)*Y
+            step.pose.position.y = self.Y + math.sin(self.theta)*X + math.cos(self.theta)*Y
             step.pose.position.z = self.params["Step Height"]["value"]
          
             step.pose.orientation.x = Q[0]
@@ -267,13 +275,13 @@ class AtlasTeleop(object):
             X = turn * W/2 * math.sin(theta)
             Y = turn * W/2 * math.cos(theta)
             
-        Q = quaternion_from_euler(0, 0, theta)
+        Q = quaternion_from_euler(0, 0, theta + self.theta)
         step = AtlasBehaviorStepData()
         step.step_index = len(steps)
         step.foot_index = is_right_foot
         step.duration = self.params["Stride Duration"]["value"]
-        step.pose.position.x = X
-        step.pose.position.y = Y
+        step.pose.position.x = self.X + math.cos(self.theta)*X - math.sin(self.theta)*Y
+        step.pose.position.y = self.Y + math.sin(self.theta)*X + math.cos(self.theta)*Y
         step.pose.position.z = self.params["Step Height"]["value"]
         step.pose.orientation.x = Q[0]
         step.pose.orientation.y = Q[1]
@@ -286,6 +294,8 @@ class AtlasTeleop(object):
         
     # Send a trajectory of step commands when walking
     def process_atlas(self, state):
+        self.state = state;
+
         if not self._isWalking:
             return
 
@@ -302,10 +312,10 @@ class AtlasTeleop(object):
         dummy_step.foot_index = 1 - self.steps[0].foot_index
 
         # Load in the step array and pad it out
-        steps = [ dummy_step ] + self.steps + [ dummy_step ] * 5
+        steps = self.steps + [ dummy_step ] * 5
 
         # Check if we have finished walking
-        if state.walk_feedback.current_step_index >= len(self.steps) - 1:
+        if state.walk_feedback.current_step_index >= len(self.steps) - 2:
 
             # Reset robot to standing
             stand_goal = AtlasSimInterfaceCommand()

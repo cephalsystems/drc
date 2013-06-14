@@ -10,6 +10,7 @@
   <url>http://ros.org/wiki/superteleop</url>
   <depend package="roscpp"/>
   <depend package="rospy"/>
+  <depend package="std_msgs"/>
   <depend package="tf"/>
   <depend package="tf_conversions"/>
   <depend package="visualization_msgs"/>
@@ -17,7 +18,6 @@
   <depend package="razer_hydra"/>
   <depend package="atlas_msgs"/>
   <depend package="sandia_hand_msgs"/>
-  <depend package="pi_tracker"/>
   <depend package="kdl_parser"/>
   <depend package="kdl"/>
 

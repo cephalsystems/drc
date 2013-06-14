@@ -8,7 +8,6 @@
 #include <atlas_msgs/AtlasState.h>
 #include <atlas_msgs/AtlasCommand.h>
 #include <sandia_hand_msgs/SimpleGraspSrv.h>
-#include <pi_tracker/Skeleton.h>
 
 #include <vector>
 #include <map>
@@ -159,11 +158,6 @@ void hydraLegsCallback(const razer_hydra::Hydra::ConstPtr &msg)
   }
 }
 
-void skeletonCallback(const pi_tracker::Skeleton::ConstPtr &msg)
-{
-
-}
-
 int main(int argc, char* argv[])
 {
   // Start up ROS node
@@ -188,7 +182,6 @@ int main(int argc, char* argv[])
   ros::Subscriber atlas_sub = nh.subscribe("/atlas/atlas_state", 1, atlasCallback);
   ros::Subscriber hydra_arms_sub = nh.subscribe("hydra_calib", 1, hydraArmsCallback);
   // ros::Subscriber hydra_legs_sub = nh.subscribe("/legs/hydra_calib", 1, hydraLegsCallback);
-  // ros::Subscriber skel_sub = nh.subscribe("/skeleton", 1, skeletonCallback);
 
   // Subscribe to the hand services
   left_hand = nh.serviceClient<sandia_hand_msgs::SimpleGraspSrv>
