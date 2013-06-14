@@ -25,4 +25,7 @@
     <remap from="image" to="/snap/image" />
   </node>
 
+  <node name="xclock" pkg="drc_launch" type="start_xclock.sh" >
+  </node>
+
 </launch>
