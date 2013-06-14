@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
   tf::TransformBroadcaster br;
 
   ros::Publisher pub_joint_state =
-      nh.advertise<sensor_msgs::JointState>("joint_states", 1);
+      nh.advertise<sensor_msgs::JointState>("joint_states", 1, true);
   ros::Publisher pub_points =
       nh.advertise<sensor_msgs::PointCloud>("points", 1);
   ros::Subscriber sub_snapshot = nh.subscribe("snapshot", 1, snapshot_callback);
@@ -89,12 +89,15 @@ int main(int argc, char *argv[])
   while(ros::ok()) {
     
     // Send out the latest joint state
+    joints_.header.stamp = ros::Time::now();
     pub_joint_state.publish(joints_);
 
     // Send out the latest point cloud
+    cloud_.header.stamp = ros::Time::now();
     pub_points.publish(cloud_);
 
     // Send out the latest image
+    image_.header.stamp = ros::Time::now();
     pub_image.publish(image_);
     
     // Send out the latest IMU transformation for the head
