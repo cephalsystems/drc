@@ -7,12 +7,10 @@
         output="$(arg output)" respawn="true">
   </node>
 
-  <!--
   <node name="atlas_replay_service"
         type="service" pkg="atlas_replay" 
         output="$(arg output)" respawn="true">
   </node>
-  -->
 
   <node name="atlas_sim_throttle"
         pkg="topic_tools" type="throttle" 
