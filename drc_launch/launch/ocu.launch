@@ -2,10 +2,9 @@
 <launch>
   <arg name="output" default="log" />
 
-<!--
   <include file="$(find drc_launch)/launch/ocu_hydra.launch">
+    <arg name="output" value="$(arg output)" />
   </include>
--->
 
   <include file="$(find drc_launch)/launch/ocu_voodoo.launch">
     <arg name="output" value="$(arg output)" />
@@ -20,7 +19,8 @@
   </include>
 
   <node name="panorama_view"
-        pkg="image_view" type="image_view" >
+        pkg="image_view" type="image_view" 
+        output="$(arg output)" >
     <remap from="/tf" to="/tf_ocu" />
     <remap from="image" to="/snap/image" />
   </node>

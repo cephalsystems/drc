@@ -1,13 +1,21 @@
 <launch>
+  <arg name="output" default="log" />  
 
   <include file="$(find razer_hydra)/hydra.launch">
     <arg name="device" value="/dev/hydra" />
   </include>
 
   <node name="hydra_throttle"
-        pkg="topic_tools" type="throttle" args="messages /hydra_calib 100" />
+        pkg="topic_tools" type="throttle" 
+        args="messages /hydra_calib 100" 
+        output="$(arg output)" />
   
   <node name="hydra_preprocessor" 
-        pkg="super_teleop" type="hydra_preprocessor.py" />
+        pkg="super_teleop" type="hydra_preprocessor.py" 
+        output="$(arg output)"/>
+
+  <node name="hydra_control"
+        pkg="super_teleop" type="hydra_control.py" 
+        output="$(arg output)" />
 
 </launch>
