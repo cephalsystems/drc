@@ -1,9 +1,9 @@
 bool record
 
-bool use_torso
-bool use_left_leg
-bool use_right_leg
-bool use_left_arm
-bool use_right_arm
+bool torso
+bool left_leg
+bool right_leg
+bool left_arm
+bool right_arm
 ---
 std_msgs/Empty empty
