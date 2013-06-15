@@ -3,6 +3,7 @@ import roslib; roslib.load_manifest('super_teleop')
 
 from razer_hydra.msg import Hydra
 from std_msgs.msg import String
+from atlas_replay.srv import Record, Play
 import tf
 import rospy
 
@@ -14,11 +15,20 @@ class HydraControl():
         self.input = rospy.Subscriber("hydra_calib_throttle", Hydra, self.process_hydra)
         self.status = rospy.Publisher("record_state", String, tcp_nodelay=True)
         self.br = tf.TransformBroadcaster()
-        self.limbs = { torso: false,
-                       left_arm: false,
-                       right_arm: false,
-                       left_leg: false,
-                       right_leg: false }
+
+        rospy.log_info('Waiting for record service')
+        rospy.wait_for_service('/record')
+        self.record = rospy.ServiceProxy('/record', Record)
+
+        rospy.log_info('Waiting for send service')
+        rospy.wait_for_service('/send')
+        self.send = rospy.ServiceProxy('/send', Play)
+
+        rospy.log_info('Waiting for play service')
+        rospy.wait_for_service('/play')
+        self.play = rospy.ServiceProxy('/play', Play)
+
+        self.record_msg = Record()
     
     def run(self):
         self.init()
@@ -33,29 +43,40 @@ class HydraControl():
         left_new = msg.paddles[0]
         left_old = prev_msg.paddles[0]
 
-        if left.buttons[0] and not left.buttons[0]:
-            pass
+        if left.buttons[0] and not left.buttons[0] and not self.record_msg.record:
+            try:
+                print "Executing current trajectory"
+                send_msg = Play()
+                send_msg.slots = [0, 1] # don't save trajectory, execute immediately
+                self.send(send_msg)
+            except rospy.ServiceException, e:
+                print "Execution command failed: %s" % str(e)
 
         if left.buttons[1] and not left.buttons[1]:
-            self.limbs['left_leg'] = True
+            self.record_msg.left_leg = not self.record_msg.left_leg
 
         if left.buttons[2] and not left.buttons[2]:
-            self.limbs['right_leg'] = True
+            self.record_msg.right_leg = not self.record_msg.right_leg
 
         if left.buttons[3] and not left.buttons[3]:
-            self.limbs['left_arm'] = True
+            self.record_msg.left_arm = not self.record_msg.left_arm
 
         if left.buttons[4] and not left.buttons[4]:
-            self.limbs['right_arm'] = True
-
+            self.record_msg.right_arm = not self.record_msg.right_arm
+            
         if left.buttons[6] and not left.buttons[6]:
-            self.limbs['torso'] = True
+            self.record_msg.torso = not self.record_msg.torso
                        
         if left.buttons[7] and not left.buttons[7]:
-            pass
+            self.record_msg.record = not self.record_msg.record
+            try:
+                print "Recording: %s" % str(self.record_msg.record)
+                self.record(self.record_msg)
+            except rospy.ServiceException, e:
+                print "Recording command failed: %s" % str(e)
 
         # Publish current state of system
-        status.publish(str(self.limbs))
+        status.publish(str(self.record_msg))
 
 if __name__ == '__main__':
     rospy.init_node('hydra_control')
