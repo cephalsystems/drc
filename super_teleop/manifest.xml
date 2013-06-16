@@ -17,6 +17,8 @@
 
   <depend package="razer_hydra"/>
   <depend package="atlas_msgs"/>
+  <depend package="atlas_replay"/>
+  <depend package="atlas_snapshot"/>
 <!--
   <depend package="sandia_hand_msgs"/>
   <depend package="kdl_parser"/>

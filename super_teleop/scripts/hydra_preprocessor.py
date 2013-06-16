@@ -10,7 +10,7 @@ PADDLE_NAMES = [ 'hydra_left', 'hydra_right' ]
 class HydraPreprocessor():
 
     def init(self):
-        rospy.Subscriber("hydra_calib_throttle", Hydra, self.process_hydra)
+        rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)
         self.br = tf.TransformBroadcaster()
     
     def run(self):
