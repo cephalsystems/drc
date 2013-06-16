@@ -8,14 +8,14 @@
   <node name="hydra_throttle"
         pkg="topic_tools" type="throttle" 
         args="messages /hydra_calib 100" 
-        output="$(arg output)" />
+        output="$(arg output)" respawn="true"/>
   
   <node name="hydra_preprocessor" 
         pkg="super_teleop" type="hydra_preprocessor.py" 
-        output="$(arg output)"/>
+        output="$(arg output)" respawn="true"/>
 
   <node name="hydra_control"
         pkg="super_teleop" type="hydra_control.py" 
-        output="$(arg output)" />
+        output="$(arg output)" respawn="true"/>
 
 </launch>
