@@ -27,6 +27,7 @@ atlas_msgs::AtlasCommand initialize_command() {
   command.ki_position.resize(n);
   command.kd_position.resize(n);
   command.kp_velocity.resize(n);
+  command.k_effort.resize(n);
   command.i_effort_min.resize(n);
   command.i_effort_max.resize(n);
 
@@ -50,6 +51,7 @@ atlas_msgs::AtlasCommand initialize_command() {
     command.i_effort_max[i] = i_clamp;
 
     command.effort[i]       = 0;
+    command.k_effort[i]    = 0;
     command.kp_velocity[i]  = 0; // TODO: should this be non-zero?
   }
 
@@ -143,7 +145,7 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
     for (size_t idx = 0; idx < joint_idx.size(); ++idx) {
       command.position[joint_idx[idx]] = (nalpha * prev_state[idx] +
                                           alpha * next_state[idx]);
-      command.effort[joint_idx[idx]] = 255;
+      command.k_effort[joint_idx[idx]] = 255;
     }
 
     // Send it to Atlas!
