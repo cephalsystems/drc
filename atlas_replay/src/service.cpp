@@ -123,8 +123,6 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
   for (float time = 0.0; time < end;
        time = (ros::Time::now() - start).toSec())
   {
-    ROS_INFO("%f / %f", time, end);
-    
     // Get neighboring joint states for current time
     int prev_idx = (int)(time / trajectory.RATE);
     float prev_time = (1.0 / trajectory.RATE) * prev_idx;

@@ -77,7 +77,6 @@ bool record_service(atlas_replay::Record::Request &request,
 void clear_trajectory(atlas_replay::Upload::Request &trajectory)
 {
   recorded_states_.clear();
-  trajectory_.commands.clear();
   trajectory_.flags = 0;
   timestep_ = 0;
 }
@@ -92,6 +91,7 @@ bool send_service(atlas_replay::Play::Request &request,
   }
 
   // Convert recorded states to trajectory commands
+  trajectory_.commands.clear();
   BOOST_FOREACH(const joint_vector_t &joints, recorded_states_) {
     BOOST_FOREACH(const joint_vector_t::value_type &joint, joints) {
       trajectory_.commands.push_back(joint.second);
