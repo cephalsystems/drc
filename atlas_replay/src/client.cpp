@@ -165,7 +165,15 @@ int main(int argc, char** argv)
       {
         BOOST_FOREACH(int joint_idx, LIMBS[limb_idx])
         {
-          joints[joint_idx] = joint_states_.position[joint_idx];
+          // See if this joint is in the joint state message
+          std::vector<std::string>::const_iterator pos_it
+              = std::find(joint_states_.name.begin(),
+                          joint_states_.name.end(),
+                          ATLAS_JOINT_NAMES[joint_idx]);
+
+          // Fill in the joint value from the message, or zero it
+          joints[joint_idx] = (pos_it == joint_states_.name.end())
+              ? 0.0 : joint_states_.position[joint_idx];
         }
       }
     }
