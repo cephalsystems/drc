@@ -4,9 +4,9 @@ uint8 USES_RIGHT_LEG = 2
 uint8 USES_LEFT_ARM  = 3
 uint8 USES_RIGHT_ARM = 4
 uint8 EXECUTE        = 5
+uint32 RATE          = 20 
 
 float32[] commands
-float32[] times
 uint8 flags
 uint8 slot
 ---

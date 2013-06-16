@@ -94,7 +94,7 @@ std::vector<int> get_trajectory_joints(atlas_replay::Upload::Request &trajectory
   {
     if (trajectory.flags & limb_idx)
     {
-      BOOST_FOREACH(int i, TORSO_JOINTS)
+      BOOST_FOREACH(int i, LIMBS[limb_idx])
       {
         joint_indices.push_back(i);
       }
@@ -105,7 +105,6 @@ std::vector<int> get_trajectory_joints(atlas_replay::Upload::Request &trajectory
 }
 
 bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
-  std::vector<float> times = trajectory.times;
   std::vector<float> joints = trajectory.commands;
   std::vector<int> joint_idx = get_trajectory_joints(trajectory);
 
@@ -120,18 +119,15 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
   // Execute timed trajectory
   ROS_INFO("Playing trajectory %u", trajectory.slot);
   ros::Time start = ros::Time::now();
-  for (float time = 0.0; time < times.back();
+  for (float time = 0.0;
+       time < (trajectory.RATE * joints.size() / joint_idx.size());
        time = (ros::Time::now() - start).toSec())
   {
     // Get neighboring joint states for current time
-    std::vector<float>::iterator prev_it, next_it;
-    prev_it = std::lower_bound(times.begin(), times.end(), time);
-    float prev_time = *prev_it;
-    int prev_idx = prev_it - times.begin();
-    
-    next_it = std::upper_bound(times.begin(), times.end(), time);
-    float next_time = *next_it;
-    int next_idx = next_it - times.begin();
+    int prev_idx = (int)(time / trajectory.RATE);
+    float prev_time = 1.0 / trajectory.RATE * prev_idx;
+    int next_idx = prev_idx + 1;
+    float next_time = 1.0 / trajectory.RATE * next_idx;
 
     // Load previous and next joint states
     std::vector<float> prev_state(joints.begin() + prev_idx * joint_idx.size(),
