@@ -160,6 +160,8 @@ int main(int argc, char** argv)
     joint_vector_t joints;
     if (recorded_states_.size() > timestep_) {
       joints = recorded_states_[timestep_];
+    } else if (recorded_states_.size() > 0) {
+      joints.insert(recorded_states_.back().begin(), recorded_states_.back().end());
     }
     
     for (size_t limb_idx = 0; limb_idx < LIMBS.size(); ++limb_idx)
@@ -176,16 +178,18 @@ int main(int argc, char** argv)
 
           // Fill in the joint value from the message, or zero it
           joints[joint_idx] = (pos_it == joint_states_.name.end())
-              ? 0.0 : joint_states_.position[joint_idx];
+              ? 0.0 : joint_states_.position[pos_it - joint_states_.name.begin()];
         }
       }
     }
     
     // Add joints to the trajectory array
-    if (recorded_states_.size() > timestep_) {
-      recorded_states_[timestep_] = joints;
-    } else {
-      recorded_states_.push_back(joints);
+    if (record_flags_) {
+      if (recorded_states_.size() > timestep_) {
+        recorded_states_[timestep_] = joints;
+      } else {
+        recorded_states_.push_back(joints);
+      }
     }
     
     // Publish the prerecorded joint states for the existing trajectory
