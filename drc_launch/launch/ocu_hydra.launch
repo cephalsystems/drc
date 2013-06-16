@@ -1,21 +1,26 @@
 <launch>
   <arg name="output" default="log" />  
 
-  <include file="$(find razer_hydra)/hydra.launch">
-    <arg name="device" value="/dev/hydra" />
-  </include>
-
-  <node name="hydra_throttle"
-        pkg="topic_tools" type="throttle" 
-        args="messages /hydra_calib 100" 
-        output="$(arg output)" respawn="true"/>
+  <node name="razer_hydra_driver"
+        pkg="razer_hydra" type="driver" 
+        output="$(arg output)" respawn="true">
+    <param name="device"        type="string" value="/dev/hydra" />
+    <param name="publish_tf"    type="bool"   value="false" />
+    <param name="polling_ms"    type="int"    value="50" />
+    <param name="lambda_filter" type="double" value="0.5" />
+  </node>
   
   <node name="hydra_preprocessor" 
         pkg="super_teleop" type="hydra_preprocessor.py" 
-        output="$(arg output)" respawn="true"/>
+        output="$(arg output)" respawn="true">
+  </node>
 
   <node name="hydra_control"
         pkg="super_teleop" type="hydra_control.py" 
-        output="$(arg output)" respawn="true"/>
+        output="$(arg output)" respawn="true">
+    <remap from="record" to="/voodoo/record" />
+    <remap from="send" to="/voodoo/send" />
+    <remap from="play" to="/play" />
+  </node>
 
 </launch>
