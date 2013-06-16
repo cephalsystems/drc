@@ -94,7 +94,7 @@ std::vector<int> get_trajectory_joints(atlas_replay::Upload::Request &trajectory
   
   for (size_t limb_idx = 0; limb_idx < LIMBS.size(); ++limb_idx)
   {
-    if (trajectory.flags & limb_idx)
+    if (trajectory.flags & (1 << limb_idx))
     {
       BOOST_FOREACH(int i, LIMBS[limb_idx])
       {
@@ -176,7 +176,7 @@ bool upload_service(atlas_replay::Upload::Request &request,
     save_trajectory(request);
   }
   
-  if (request.flags & request.EXECUTE) {
+  if (request.flags & (1 << request.EXECUTE)) {
     return play_trajectory(request);
   } else {
     return true;

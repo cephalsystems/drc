@@ -42,23 +42,23 @@ bool record_service(atlas_replay::Record::Request &request,
 
     // Determine which parts are being used for this session
     if (request.torso) { 
-      record_flags_ |= trajectory_.USES_TORSO;
+      record_flags_ |= 1 << trajectory_.USES_TORSO;
     }
 
     if (request.left_leg) {
-      record_flags_ |= trajectory_.USES_LEFT_LEG;
+      record_flags_ |= 1 << trajectory_.USES_LEFT_LEG;
     }
 
     if (request.right_leg) {
-      record_flags_ |= trajectory_.USES_RIGHT_LEG;
+      record_flags_ |= 1 << trajectory_.USES_RIGHT_LEG;
     }
 
     if (request.left_arm) {
-      record_flags_ |= trajectory_.USES_LEFT_ARM;
+      record_flags_ |= 1 << trajectory_.USES_LEFT_ARM;
     }
 
     if (request.right_arm) {
-      record_flags_ |= trajectory_.USES_RIGHT_ARM;
+      record_flags_ |= 1 << trajectory_.USES_RIGHT_ARM;
     }
     
     // Combine all the parts for the trajectory
@@ -109,7 +109,7 @@ bool send_service(atlas_replay::Play::Request &request,
   // Fill in save slot number and execute flag
   trajectory_.slot = request.slots[0];
   if (request.slots.size() > 1 && request.slots[1] != 0) {
-    trajectory_.flags = trajectory_.EXECUTE;
+    trajectory_.flags |= 1 << trajectory_.EXECUTE;
   }
 
   // Upload trajectory and clear local copy
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
     
     for (size_t limb_idx = 0; limb_idx < LIMBS.size(); ++limb_idx)
     {
-      if (record_flags_ & limb_idx)
+      if (record_flags_ & (1 << limb_idx))
       {
         BOOST_FOREACH(int joint_idx, LIMBS[limb_idx])
         {
