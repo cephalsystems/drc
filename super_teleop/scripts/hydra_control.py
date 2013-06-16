@@ -3,7 +3,7 @@ import roslib; roslib.load_manifest('super_teleop')
 
 from razer_hydra.msg import Hydra
 from std_msgs.msg import String
-from atlas_replay.srv import Record, RecordRequest, Play
+from atlas_replay.srv import Record, RecordRequest, Play, PlayRequest
 import tf
 import rospy
 
@@ -53,10 +53,11 @@ class HydraControl():
         # Left paddle bindings
         if left.buttons[0] and not left_old.buttons[0] and not self.record_msg.record:
             try:
-                print "Executing current trajectory"
-                send_msg = Play()
+                print "Executing current trajectory."
+                send_msg = PlayRequest()
                 send_msg.slots = [0, 1] # don't save trajectory, execute immediately
                 self.send(send_msg)
+                print "Execution complete."
             except rospy.ServiceException, e:
                 print "Execution command failed: %s" % str(e)
 
