@@ -119,15 +119,17 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
   // Execute timed trajectory
   ROS_INFO("Playing trajectory %u", trajectory.slot);
   ros::Time start = ros::Time::now();
-  for (float time = 0.0;
-       time < (trajectory.RATE * joints.size() / joint_idx.size());
+  float end = (1.0 / trajectory.RATE) * joints.size() / joint_idx.size();
+  for (float time = 0.0; time < end;
        time = (ros::Time::now() - start).toSec())
   {
+    ROS_INFO("%f / %f", time, end);
+    
     // Get neighboring joint states for current time
     int prev_idx = (int)(time / trajectory.RATE);
-    float prev_time = 1.0 / trajectory.RATE * prev_idx;
+    float prev_time = (1.0 / trajectory.RATE) * prev_idx;
     int next_idx = prev_idx + 1;
-    float next_time = 1.0 / trajectory.RATE * next_idx;
+    float next_time = (1.0 / trajectory.RATE) * next_idx;
 
     // Load previous and next joint states
     std::vector<float> prev_state(joints.begin() + prev_idx * joint_idx.size(),

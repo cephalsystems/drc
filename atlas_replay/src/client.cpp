@@ -87,6 +87,7 @@ bool send_service(atlas_replay::Play::Request &request,
 {
   // Unsafe while recording
   if (is_recording_) {
+    ROS_INFO("Cannot send while recording.");
     return false;
   }
 
@@ -98,7 +99,9 @@ bool send_service(atlas_replay::Play::Request &request,
   }
   
   // Ignore zero length or canceled trajectories (no upload AND no execution)
-  if (trajectory_.flags == 0 || trajectory_.commands.size() > 0 || request.slots.size() < 1) {
+  if (trajectory_.flags == 0 || trajectory_.commands.size() == 0 || request.slots.size() == 0) {
+    ROS_INFO("Ignoring invalid trajectory: %u %lu %lu",
+             trajectory_.flags, trajectory_.commands.size(), request.slots.size());
     clear_trajectory(trajectory_);
     return true;
   }
@@ -112,9 +115,9 @@ bool send_service(atlas_replay::Play::Request &request,
   // Upload trajectory and clear local copy
   atlas_replay::Upload upload_call;
   upload_call.request = trajectory_;
-  clear_trajectory(trajectory_);
 
   // Return result of upload
+  ROS_INFO("Uploading trajectory: %u", trajectory_.slot);
   return upload_.call(upload_call);
 }                    
 
