@@ -17,7 +17,7 @@
         output="$(arg output)" respawn="true">
     <remap from="/tf" to="/tf_ocu" />
     <param name="port" value="6668" />
-    <param name="fixed_frame" value="/atlas/utorso" />
+    <param name="fixed_frame" value="/atlas/pelvis" />
     <rosparam param="frames" command="delete" />
     <rosparam param="frames">
       - /atlas/utorso
@@ -76,6 +76,34 @@
       - /model/r_larm
       - /model/r_farm
       - /model/r_hand
+      - /teleop/utorso
+      - /teleop/mtorso
+      - /teleop/ltorso
+      - /teleop/pelvis
+      - /teleop/l_uglut
+      - /teleop/l_lglut
+      - /teleop/l_uleg
+      - /teleop/l_lleg
+      - /teleop/l_talus
+      - /teleop/l_foot
+      - /teleop/r_uglut
+      - /teleop/r_lglut
+      - /teleop/r_uleg
+      - /teleop/r_lleg
+      - /teleop/r_talus
+      - /teleop/r_foot
+      - /teleop/l_clav
+      - /teleop/l_scap
+      - /teleop/l_uarm
+      - /teleop/l_larm
+      - /teleop/l_farm
+      - /teleop/l_hand
+      - /teleop/r_clav
+      - /teleop/r_scap
+      - /teleop/r_uarm
+      - /teleop/r_larm
+      - /teleop/r_farm
+      - /teleop/r_hand
     </rosparam>
   </node>
 

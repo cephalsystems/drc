@@ -57,9 +57,34 @@
     <param name="publish_frequency" value="60" />
   </node>
 
-  <node name="atlas_replay_client" ns="voodoo"
+  <node name="replay_client" ns="voodoo"
         pkg="atlas_replay" type="client" 
         output="$(arg output)" respawn="true" >
     <remap from="upload" to="/upload" />
   </node>
+
+  <node name="replay_state_publisher" ns="voodoo"
+        pkg="robot_state_publisher" type="state_publisher"
+        output="$(arg output)" respawn="true">
+    <remap from="joint_states" to="preview_states" />
+    <remap from="robot_description" to="/robot_description" />
+    <remap from="/tf" to="/tf_ocu" />
+    <param name="tf_prefix" value="teleop" />
+    <param name="publish_frequency" value="60" />
+  </node>
+  
+  <node name="voodoo_torso_link" ns="voodoo"
+        pkg="tf" type="static_transform_publisher" 
+        args="0 0 0 0 0 0 /atlas/pelvis /teleop/pelvis 100"
+        output="$(arg output)" respawn="true">
+    <remap from="/tf" to="/tf_ocu" />
+  </node>
+
+  <node name="replay_torso_link" ns="voodoo"
+        pkg="tf" type="static_transform_publisher" 
+        args="0 0 0 0 0 0 /atlas/pelvis /model/pelvis 100"
+        output="$(arg output)" respawn="true">
+    <remap from="/tf" to="/tf_ocu" />
+  </node>
+
 </launch>

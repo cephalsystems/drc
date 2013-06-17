@@ -34,7 +34,7 @@
         output="$(arg output)" respawn="true">
     <remap from="scan" to="/multisense_sl/laser/scan"/>
     <param name="max_scans" type="int" value="400" />
-    <param name="fixed_frame" type="string" value="/utorso" />
+    <param name="fixed_frame" type="string" value="/pelvis" />
   </node>
   
 </launch>
