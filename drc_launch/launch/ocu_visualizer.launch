@@ -15,7 +15,6 @@
 
   <node name="frame_stream" pkg="msgpack_streamer" type="frame_stream"
         output="$(arg output)" respawn="true">
-    <remap from="/tf" to="/tf_ocu" />
     <param name="port" value="6668" />
     <param name="fixed_frame" value="/atlas/pelvis" />
     <rosparam param="frames" command="delete" />

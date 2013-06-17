@@ -2,30 +2,37 @@
 <launch>
   <arg name="output" default="log" />
 
-  <include file="$(find drc_launch)/launch/ocu_hydra.launch">
-    <arg name="output" value="$(arg output)" />
-  </include>
+  <group>
+    <param name="/ocu_use_sim_time" value="false" />
+    <remap from="/use_sim_time" to="/ocu_use_sim_time" />
 
-  <include file="$(find drc_launch)/launch/ocu_voodoo.launch">
-    <arg name="output" value="$(arg output)" />
-  </include>
-
-  <include file="$(find drc_launch)/launch/ocu_snapshot.launch">
-    <arg name="output" value="$(arg output)" />
-  </include>
-
-  <include file="$(find drc_launch)/launch/ocu_visualizer.launch">
-    <arg name="output" value="$(arg output)" />
-  </include>
-
-  <node name="panorama_view"
-        pkg="image_view" type="image_view" 
-        output="$(arg output)" >
+    <remap from="/clock" to="/clock_ocu" />
     <remap from="/tf" to="/tf_ocu" />
-    <remap from="image" to="/snap/image" />
-  </node>
+    <remap from="/rosout" to="/rosout_ocu" />
 
-  <node name="xclock" pkg="drc_launch" type="start_xclock.sh" >
-  </node>
+    <include file="$(find drc_launch)/launch/ocu_hydra.launch">
+      <arg name="output" value="$(arg output)" />
+    </include>
 
+    <include file="$(find drc_launch)/launch/ocu_voodoo.launch">
+      <arg name="output" value="$(arg output)" />
+    </include>
+
+    <include file="$(find drc_launch)/launch/ocu_snapshot.launch">
+      <arg name="output" value="$(arg output)" />
+    </include>
+
+    <include file="$(find drc_launch)/launch/ocu_visualizer.launch">
+      <arg name="output" value="$(arg output)" />
+    </include>
+
+    <node name="panorama_view"
+          pkg="image_view" type="image_view" 
+          output="$(arg output)" >
+      <remap from="image" to="/snap/image" />
+    </node>
+    
+    <node name="xclock" pkg="drc_launch" type="start_xclock.sh" >
+    </node>
+  </group>
 </launch>

@@ -87,7 +87,6 @@
         pkg="robot_state_publisher" type="state_publisher"
         output="$(arg output)" respawn="true">
     <remap from="robot_description" to="/robot_description" />
-    <remap from="/tf" to="/tf_ocu" />
     <param name="tf_prefix" value="model" />
     <param name="publish_frequency" value="60" />
   </node>
@@ -103,7 +102,6 @@
         output="$(arg output)" respawn="true">
     <remap from="joint_states" to="preview_states" />
     <remap from="robot_description" to="/robot_description" />
-    <remap from="/tf" to="/tf_ocu" />
     <param name="tf_prefix" value="teleop" />
     <param name="publish_frequency" value="60" />
   </node>
@@ -112,14 +110,12 @@
         pkg="tf" type="static_transform_publisher" 
         args="0 0 0 0 0 0 /atlas/pelvis /teleop/pelvis 100"
         output="$(arg output)" respawn="true">
-    <remap from="/tf" to="/tf_ocu" />
   </node>
 
   <node name="replay_torso_link" ns="voodoo"
         pkg="tf" type="static_transform_publisher" 
         args="0 0 0 0 0 0 /atlas/pelvis /model/pelvis 100"
         output="$(arg output)" respawn="true">
-    <remap from="/tf" to="/tf_ocu" />
   </node>
 
 </launch>
