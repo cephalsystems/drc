@@ -45,6 +45,41 @@
                 min: 2.618
                 max: -2.618
                 offset: 0.0
+            "5":
+                joint: "r_arm_usy"
+                min: -2.618
+                max: 2.618
+                offset: 0.0
+            "7":
+                joint: "r_arm_shx"
+                min: 2.618
+                max: -2.618
+                offset: -0.68
+            "10":
+                joint: "r_arm_mwx"
+                min: -2.618
+                max: 2.618
+                offset: 0.0
+            "3":
+                joint: "r_arm_elx"
+                min: -2.618
+                max: 2.618
+                offset: 1.6
+            "12":
+                joint: "r_arm_uwy"
+                min: -2.618
+                max: 2.618
+                offset: 0.0
+            "4":
+                joint: "r_arm_ely"
+                min: -2.618
+                max: 2.618
+                offset: 3.141
+            "6":
+                joint: "back_ubx"
+                min: -2.618
+                max: 2.618
+                offset: 3.141
     </rosparam>
   </node>
 
