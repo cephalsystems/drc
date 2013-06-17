@@ -203,9 +203,20 @@ int main(int argc, char *argv[])
     // Clear system buffer
     tcflush(fd, TCIFLUSH);
     
-    // Turn on power to pullup pins
-    // TODO: make this configurable
+    // Turn on power to pullup pin RB7
     if (write(fd, "\x05\x35\x12\x00\x01", 5) != 5) {
+      ROS_ERROR("Error %d writing to %s: %s",
+                errno, mapping.port_name.c_str(), strerror(errno));
+    }
+
+    // Turn on power to pullup pin RB6
+    if (write(fd, "\x05\x35\x13\x00\x01", 5) != 5) {
+      ROS_ERROR("Error %d writing to %s: %s",
+                errno, mapping.port_name.c_str(), strerror(errno));
+    }
+
+    // Turn on power to pullup pin RA4
+    if (write(fd, "\x05\x35\x0E\x00\x01", 5) != 5) {
       ROS_ERROR("Error %d writing to %s: %s",
                 errno, mapping.port_name.c_str(), strerror(errno));
     }
@@ -289,6 +300,9 @@ int main(int argc, char *argv[])
           // Load the joint position into the joint state
           joint_state.name.push_back(entry.second.joint);
           joint_state.position.push_back(joint_value);
+
+          ROS_INFO("%s\t%u\t%f\t%f", entry.second.joint.c_str(),
+                   adc_value, raw_joint_value, joint_value);
         }
         else
         {
