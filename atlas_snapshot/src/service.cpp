@@ -7,12 +7,27 @@
 #include <laser_assembler/AssembleScans.h>
 #include <boost/foreach.hpp>
 #include <opencv2/opencv.hpp>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <image_geometry/pinhole_camera_model.h>
+#include <tf/transform_listener.h>
+#include <sensor_msgs/image_encodings.h>
 
-ros::Publisher pub_snapshot;
-ros::ServiceClient scan_client;
+ros::Publisher pub_snapshot_;
+ros::ServiceClient scan_client_;
+tf::TransformListener *tf_listener_;
 
 atlas_msgs::AtlasState state_;
 sensor_msgs::Imu imu_;
+
+class Camera {
+ public:
+  cv::Mat image;
+  image_geometry::PinholeCameraModel model;
+};
+
+std::map<std::string, Camera> cameras_;
+typedef std::map<std::string, Camera>::value_type camera_entry_t;
 
 inline double remap(double input,
                     double old_min, double old_max,
@@ -21,6 +36,27 @@ inline double remap(double input,
   double old_range = (old_max - old_min);
   double new_range = (new_max - new_min);
   return (input - old_min) / old_range * new_range + new_min;
+}
+
+/**
+ * Stores last received camera info.
+ */
+void image_callback(const sensor_msgs::ImageConstPtr& image_msg,
+                    const sensor_msgs::CameraInfoConstPtr& info_msg)
+{
+  // Convert camera image
+  cv_bridge::CvImagePtr input_bridge;
+  try {
+    input_bridge = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
+    cameras_[image_msg->header.frame_id].image = input_bridge->image;
+  }
+  catch (cv_bridge::Exception& ex){
+    ROS_ERROR("[draw_frames] Failed to convert image");
+    return;
+  }
+
+  // Store camera model
+  cameras_[image_msg->header.frame_id].model.fromCameraInfo(info_msg);
 }
 
 /**
@@ -40,7 +76,7 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
   scan_params.request.end = ros::TIME_MAX;
 
   // Ask assembler to build this point cloud
-  if (scan_client.call(scan_params))
+  if (scan_client_.call(scan_params))
   {
     const int width = atlas_snapshot::Snapshot::WIDTH;
     const int height = atlas_snapshot::Snapshot::HEIGHT;
@@ -54,10 +90,34 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
     cv::Mat image_buffer = cv::Mat(height, width, CV_8U, cv::Scalar(0));
     cv::Mat depth_buffer = cv::Mat(height, width, CV_8U, cv::Scalar(0));
 
+    // Colorize points in cloud using all cameras
+    sensor_msgs::PointCloud camera_cloud;
+    std::vector<uint8_t> colors(cloud.points.size(), 0);
+
+    BOOST_FOREACH(const camera_entry_t &entry, cameras_)
+    {
+      // Map point cloud to camera frame
+      tf_listener_->transformPointCloud(entry.first, cloud, camera_cloud);
+      
+      // Iterate through each point, checking if match
+      for (size_t point_idx = 0; point_idx < cloud.points.size(); ++point_idx)
+      {
+        // Compute color from intensity in camera image
+        geometry_msgs::Point32 point = cloud.points[point_idx];
+        cv::Point3d point_cv(point.x, point.y, point.z);
+        cv::Point2d point_uv = entry.second.model.project3dToPixel(point_cv);
+        if (point_uv.x >=0 && point_uv.x < entry.second.image.rows
+            && point_uv.y >= 0 && point_uv.y < entry.second.image.cols)
+        {
+          colors[point_idx] = entry.second.image.at<uint8_t>(point_uv.x, point_uv.y);
+        }
+      }
+    }
+    
     // Iterate through each point, projecting into the appropriate pixel
     for (size_t point_idx = 0; point_idx < cloud.points.size(); ++point_idx)
     {
-      // Retrieve point and its intensity
+      // Retrieve point location
       geometry_msgs::Point32 point = cloud.points[point_idx];
       point.x -= offset[0];
       point.y -= offset[1];
@@ -78,7 +138,7 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
       if (d > depth_buffer.at<uint8_t>((int)i,(int)j))
       {
         cv::circle(depth_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
-        cv::circle(image_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
+        cv::circle(image_buffer, cv::Point(j,i), 2, colors[point_idx], -1);
       }
     }
     
@@ -102,7 +162,7 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
   snapshot.joints = state_.position;
 
   // Send out assembled messages
-  pub_snapshot.publish(snapshot);
+  pub_snapshot_.publish(snapshot);
   ROS_INFO("Completed robot snapshot.");
 }
 
@@ -127,8 +187,8 @@ int main(int argc, char *argv[])
   ros::NodeHandle nh_private("~");
 
   // Connect to a bunch of topics
-  pub_snapshot = nh.advertise<atlas_snapshot::Snapshot>("snapshot", 1);
-  scan_client = nh.serviceClient<laser_assembler::AssembleScans>("assemble_scans");
+  pub_snapshot_ = nh.advertise<atlas_snapshot::Snapshot>("snapshot", 1);
+  scan_client_ = nh.serviceClient<laser_assembler::AssembleScans>("assemble_scans");
   
   ros::Subscriber sub_joint_state = nh.subscribe("/atlas/atlas_state", 1,
                                                  atlas_state_callback,
@@ -140,6 +200,10 @@ int main(int argc, char *argv[])
                                              snapshot_callback,
                                              ros::TransportHints().udp().tcp());
 
+  image_transport::ImageTransport it(nh);
+  image_transport::CameraSubscriber sub = it.subscribeCamera("/multisense_sl/camera/left/image_mono", 1, image_callback);
+  tf_listener_ = new tf::TransformListener();
+  
   // Spin until shutdown
   ROS_INFO("Started snapshot service.");
   ros::spin();
