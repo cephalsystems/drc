@@ -41,6 +41,7 @@ bool record_service(atlas_replay::Record::Request &request,
   // If we are recording, fill out the rest of this track
   // with the current joint state
   if (is_recording_  && record_flags_ && timestep_ > 0) {
+    ROS_INFO("[STOPPED]");
 
     // Get the last recorded state
     joint_vector_t last_joints = recorded_states_[timestep_ - 1];
@@ -94,6 +95,7 @@ bool record_service(atlas_replay::Record::Request &request,
     
     // Start new recording session
     is_recording_ = true;
+    ROS_INFO("[RECORDING]");
   }
   
   return true;
@@ -144,7 +146,7 @@ bool send_service(atlas_replay::Play::Request &request,
   // Return result of upload
   ROS_INFO("Uploading trajectory: %u", trajectory_.slot);
   bool success = upload_.call(upload_call);
-  ROS_INFO("Upload complete.");
+  ROS_INFO("Upload complete [%s].", success ? "SUCCESS" : "FAILURE");
   return success;
 }                    
 
