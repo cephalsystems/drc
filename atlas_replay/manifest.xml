@@ -11,6 +11,7 @@
   <url>http://ros.org/wiki/atlas_replay</url>
   <depend package="roscpp"/>
   <depend package="atlas_msgs"/>
+  <depend package="sandia_hand_msgs"/>
   <depend package="urdf"/>
 </package>
 

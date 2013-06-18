@@ -206,7 +206,7 @@ int main(int argc, char** argv)
         BOOST_FOREACH(int joint_idx, LIMBS[limb_idx])
         {
           boost::shared_ptr<const urdf::Joint> joint
-              = urdf.getJoint(ATLAS_JOINT_NAMES[joint_idx]);
+              = urdf.getJoint(AUGMENTED_ATLAS_JOINT_NAMES[joint_idx]);
           if (joint)
           {
             ss << boost::format("robot:setHighlight('/teleop/%s', true)")
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
           std::vector<std::string>::const_iterator pos_it
               = std::find(joint_states_.name.begin(),
                           joint_states_.name.end(),
-                          ATLAS_JOINT_NAMES[joint_idx]);
+                          AUGMENTED_ATLAS_JOINT_NAMES[joint_idx]);
 
           // Fill in the joint value from the message, or zero it
           joints[joint_idx] = (pos_it == joint_states_.name.end())
@@ -273,13 +273,13 @@ int main(int argc, char** argv)
       
       // Search for this joint in the ATLAS JOINT VECTOR
       std::vector<std::string>::const_iterator joint_name_it
-          = std::find(ATLAS_JOINT_NAMES.begin(),
-                      ATLAS_JOINT_NAMES.end(), joint.first);
+          = std::find(AUGMENTED_ATLAS_JOINT_NAMES.begin(),
+                      AUGMENTED_ATLAS_JOINT_NAMES.end(), joint.first);
 
       // If this is an atlas joint, try to get its value
-      if (joint_name_it != ATLAS_JOINT_NAMES.end())
+      if (joint_name_it != AUGMENTED_ATLAS_JOINT_NAMES.end())
       {
-        size_t joint_idx = joint_name_it - ATLAS_JOINT_NAMES.begin();
+        size_t joint_idx = joint_name_it - AUGMENTED_ATLAS_JOINT_NAMES.begin();
 
         // Add the joint value, if it was recorded
         joint_vector_t::const_iterator joint_it = joints.find(joint_idx);
