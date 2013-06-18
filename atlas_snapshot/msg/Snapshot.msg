@@ -7,5 +7,6 @@ float32 FOVX=6.2832
 float32 FOVY=2.0944
 
 uint8[] image
+uint8[] depth
 float32[] joints
 geometry_msgs/Quaternion imu

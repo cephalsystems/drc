@@ -30,11 +30,14 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
 {
   ROS_INFO("Creating robot snapshot.");
   atlas_snapshot::Snapshot snapshot;
+
+  // Define fixed offset from origin for image center
+  float offset[] = {0.0, 0.0, 1.0};
   
   // Get current laser scan point cloud for last few seconds
   laser_assembler::AssembleScans scan_params;
-  scan_params.request.begin = ros::Time::now() - ros::Duration(20.0);
-  scan_params.request.end = ros::Time::now() + ros.Duration(5.0);
+  scan_params.request.begin = ros::TIME_MIN;
+  scan_params.request.end = ros::TIME_MAX;
 
   // Ask assembler to build this point cloud
   if (scan_client.call(scan_params))
@@ -45,14 +48,21 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
     const double fovy = atlas_snapshot::Snapshot::FOVY;
     
     // Get reference to the point cloud
-    sensor_msgs::PointCloud &cloud = scan_params.response.cloud;
+    const sensor_msgs::PointCloud &cloud = scan_params.response.cloud;
 
-    // Allocate buffer to hold a depth panorama
-    cv::Mat image_buffer = cv::Mat(height, width, CV_8U, 0);
+    // Allocate buffer to hold image and depth panoramas
+    cv::Mat image_buffer = cv::Mat(height, width, CV_8U, cv::Scalar(0));
+    cv::Mat depth_buffer = cv::Mat(height, width, CV_8U, cv::Scalar(0));
 
     // Iterate through each point, projecting into the appropriate pixel
-    BOOST_FOREACH(const geometry_msgs::Point32 &point, cloud.points)
+    for (size_t point_idx = 0; point_idx < cloud.points.size(); ++point_idx)
     {
+      // Retrieve point and its intensity
+      geometry_msgs::Point32 point = cloud.points[point_idx];
+      point.x -= offset[0];
+      point.y -= offset[1];
+      point.z -= offset[2];
+      
       // Find the appropriate equiangular pixel mapping
       double j = remap(atan2(point.y, point.x),
                        -fovx/2.0, fovx/2.0,
@@ -65,17 +75,24 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
                        0, 255);
 
       // Store the closest point return
-      if (d > image_buffer.at<uint8_t>((int)i,(int)j))
+      if (d > depth_buffer.at<uint8_t>((int)i,(int)j))
       {
+        cv::circle(depth_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
         cv::circle(image_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
       }
     }
     
     // Encode image into jpg and store in snapshot
     // Based on: http://stackoverflow.com/a/9930442
-    cv::vector<uchar> jpeg_buffer;
-    cv::imencode(".jpg", image_buffer, jpeg_buffer, std::vector<int>());
-    snapshot.image = jpeg_buffer;
+    cv::vector<uchar> jpeg_image_buffer;
+    cv::imencode(".jpg", image_buffer, jpeg_image_buffer, std::vector<int>());
+    snapshot.image = jpeg_image_buffer;
+
+    // Encode image into jpg and store in snapshot
+    // Based on: http://stackoverflow.com/a/9930442
+    cv::vector<uchar> jpeg_depth_buffer;
+    cv::imencode(".jpg", depth_buffer, jpeg_depth_buffer, std::vector<int>());
+    snapshot.depth = jpeg_depth_buffer;
   }
 
   // Load up current IMU value

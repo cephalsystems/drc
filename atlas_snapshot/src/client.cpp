@@ -14,6 +14,7 @@
  * Current robot state.
  */
 sensor_msgs::Image image_;
+sensor_msgs::Image depth_;
 sensor_msgs::PointCloud cloud_;
 sensor_msgs::JointState joints_;
 tf::Transform imu_ = tf::Transform::getIdentity();
@@ -56,6 +57,27 @@ void snapshot_callback(const atlas_snapshot::Snapshot &msg)
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
+
+  // Decode panorama image into regular image
+  try
+  {
+    // Convert from JPEG back to OpenCV
+    const cv::Mat depth_buffer = cv::Mat(msg.depth);
+    cv::Mat depth_matrix = cv::imdecode(depth_buffer, -1);
+
+    // Create a simple timestamp
+    std_msgs::Header header;
+    header.stamp = ros::Time::now();
+
+    // Convert from OpenCV to depth message
+    cv_bridge::CvImage depth = cv_bridge::CvImage(header, "mono8", depth_matrix);
+    depth_ = *(depth.toImageMsg());
+  }
+  catch (cv_bridge::Exception& e)
+  {
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
 }
 
 /**
@@ -79,6 +101,7 @@ int main(int argc, char *argv[])
 
   image_transport::ImageTransport it(nh);
   image_transport::Publisher pub_image = it.advertise("image", 1);
+  image_transport::Publisher pub_depth = it.advertise("depth", 1);
   
   // Set up fixed publish rate
   int rate;
@@ -104,6 +127,12 @@ int main(int argc, char *argv[])
     if (image_.data.size() > 0) {
       image_.header.stamp = ros::Time::now();
       pub_image.publish(image_);
+    }
+
+    // Send out the latest depth map
+    if (depth_.data.size() > 0) {
+      depth_.header.stamp = ros::Time::now();
+      pub_depth.publish(depth_);
     }
     
     // Send out the latest IMU transformation for the head
