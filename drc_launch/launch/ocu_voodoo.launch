@@ -6,6 +6,7 @@
         pkg="voodoo_driver" type="driver" 
         output="$(arg output)">
     <remap from="robot_description" to="/robot_description" />
+    <remap from="/tf" to="/tf_ocu" />
     <param name="rate" value="60" />
     <rosparam param="mapping" command="delete"/>
     <rosparam param="mapping">
@@ -75,11 +76,62 @@
                 min: 2.618
                 max: -2.618
                 offset: 3.141
-            "6":
-                joint: "back_ubx"
-                min: -0.1
-                max: 0.1
+        ttyUSB1:
+            "0":
+                joint: "back_lbz"
+                min: -2.618
+                max: 2.618
                 offset: 0.0
+            "1":
+                joint: "back_ubx"
+                min: 2.618
+                max: -2.618
+                offset: -0.00
+            "2":
+                joint: "back_mby"
+                min: 2.618
+                max: -2.618
+                offset: 0.0
+            "4":
+                joint: "l_leg_lhy"
+                min: -2.618
+                max: 2.618
+                offset: 0.0
+            "5":
+                joint: "l_leg_mhx"
+                min: -2.618
+                max:  2.618
+                offset:  -0.00
+            "6":
+                joint: "l_leg_kny"
+                min: 2.618
+                max: -2.618
+                offset: 0.0
+            "7":
+                joint: "l_leg_uhz"
+                min: 2.618
+                max: -2.618
+                offset: -1.6
+            "8":
+                joint: "r_leg_uhz"
+                min: -2.618
+                max: 2.618
+                offset: 1.6
+            "9":
+                joint: "r_leg_lhy"
+                min: -2.618
+                max: 2.618
+                offset: 0.0
+            "10":
+                joint: "r_leg_mhx"
+                min: 2.618
+                max: -2.618
+                offset: 0.0
+            "12":
+                joint: "r_leg_kny"
+                min: 2.618
+                max: -2.618
+                offset: 1.5
     </rosparam>
   </node>
 
@@ -89,12 +141,14 @@
     <remap from="robot_description" to="/robot_description" />
     <param name="tf_prefix" value="model" />
     <param name="publish_frequency" value="60" />
+    <remap from="/tf" to="/tf_ocu" />
   </node>
 
   <node name="replay_client" ns="voodoo"
         pkg="atlas_replay" type="client" 
         output="$(arg output)" respawn="true" >
     <remap from="upload" to="/upload" />
+    <remap from="/tf" to="/tf_ocu" />
   </node>
 
   <node name="replay_state_publisher" ns="voodoo"
@@ -104,18 +158,21 @@
     <remap from="robot_description" to="/robot_description" />
     <param name="tf_prefix" value="teleop" />
     <param name="publish_frequency" value="60" />
+    <remap from="/tf" to="/tf_ocu" />
   </node>
   
   <node name="voodoo_torso_link" ns="voodoo"
         pkg="tf" type="static_transform_publisher" 
         args="0 0 0 0 0 0 /atlas/pelvis /teleop/pelvis 100"
         output="$(arg output)" respawn="true">
+    <remap from="/tf" to="/tf_ocu" />
   </node>
 
   <node name="replay_torso_link" ns="voodoo"
         pkg="tf" type="static_transform_publisher" 
         args="0 0 0 0 0 0 /atlas/pelvis /model/pelvis 100"
         output="$(arg output)" respawn="true">
+    <remap from="/tf" to="/tf_ocu" />
   </node>
 
 </launch>
