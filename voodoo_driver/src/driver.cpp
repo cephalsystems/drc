@@ -301,8 +301,8 @@ int main(int argc, char *argv[])
           joint_state.name.push_back(entry.second.joint);
           joint_state.position.push_back(joint_value);
 
-          ROS_INFO("%s\t%u\t%f\t%f", entry.second.joint.c_str(),
-                   adc_value, raw_joint_value, joint_value);
+          //ROS_INFO("%s\t%u\t%f\t%f", entry.second.joint.c_str(),
+          //         adc_value, raw_joint_value, joint_value);
         }
         else
         {
