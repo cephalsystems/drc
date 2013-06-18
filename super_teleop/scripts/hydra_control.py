@@ -56,7 +56,7 @@ class HydraControl():
         # Left paddle bindings
         if left.buttons[0] and not left_old.buttons[0] and not self.record_msg.record:
             try:
-                self.status("text:setText('Executing [0]')")
+                self.status("text:setText('Executing current.')")
                 print "Executing current trajectory."
                 send_msg = PlayRequest()
                 send_msg.slots = [0, 1] # don't save trajectory, execute immediately
@@ -68,16 +68,14 @@ class HydraControl():
         if left.buttons[6] and not left_old.buttons[6] and not self.record_msg.record:
             try:
                 if self.slot == 0:
-                    self.status("text:setText('Erasing...')",
-                                str(self.slot))
+                    self.status("text:setText('Erasing [%d]')" % self.slot)
                     print "Erasing trajectory."
                     send_msg = PlayRequest()
                     send_msg.slots = [] # don't save trajectory, don't execute (erase)
                     self.send(send_msg)
                     print "Trajectory erased."
                 else:
-                    self.status("text:setText('Saving [%s]')", 
-                                str(self.slot))
+                    self.status("text:setText('Saving [%d]')" % self.slot)
                     print "Saving trajectory to slot [%d]." % self.slot
                     send_msg = PlayRequest()
                     send_msg.slots = [self.slot] # save trajectory, do not execute

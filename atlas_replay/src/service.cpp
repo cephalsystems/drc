@@ -67,23 +67,38 @@ void save_trajectory(atlas_replay::Upload::Request &trajectory) {
   boost::shared_array<uint8_t> buffer(new uint8_t[serial_size]);
 
   ros::serialization::OStream stream(buffer.get(), serial_size);
-  ros::serialization::serialize(stream, trajectory);
+  ros::serialization::serialize<atlas_replay::Upload::Request>(stream, trajectory);
 
   std::ofstream traj_file(name_trajectory(trajectory.slot), std::ios::binary);
-  traj_file.write((const char *)buffer.get(), serial_size);  
+  traj_file.write((const char *)buffer.get(), serial_size);
+  traj_file.close();
 }
 
 atlas_replay::Upload::Request load_trajectory(uint8_t slot) {
   atlas_replay::Upload::Request trajectory;
+  trajectory.slot = slot;
 
-  size_t serial_size = ros::serialization::serializationLength(trajectory);
-  boost::shared_array<uint8_t> buffer(new uint8_t[serial_size]);
-
-  std::ifstream traj_file(name_trajectory(trajectory.slot), std::ios::binary);
-  traj_file.read((char *)buffer.get(), serial_size);
+  // Open trajectory file from specified slot
+  std::ifstream traj_file(name_trajectory(slot), std::ios::binary);
+  if (!traj_file) {
+    ROS_ERROR("No trajectory in slot [%u]: %s",
+              slot, name_trajectory(slot).c_str());
+    return trajectory;
+  }
   
+  // Get size of trajectory file
+  traj_file.seekg(0, traj_file.end);
+  size_t serial_size = traj_file.tellg();
+  traj_file.seekg(0, traj_file.beg);
+
+  // Read file into byte buffer
+  boost::shared_array<uint8_t> buffer(new uint8_t[serial_size]);
+  traj_file.read((char*)buffer.get(), serial_size);
+  traj_file.close();
+
+  // Deserialize file using ROS
   ros::serialization::IStream stream(buffer.get(), serial_size);
-  ros::serialization::deserialize(stream, trajectory);
+  ros::serialization::deserialize<atlas_replay::Upload::Request>(stream, trajectory);
 
   return trajectory;
 }
@@ -119,7 +134,7 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
   ros::Rate r(rate);
 
   // Execute timed trajectory
-  ROS_INFO("Playing trajectory %u", trajectory.slot);
+  ROS_INFO("Playing [%u]", trajectory.slot);
   ros::Time start = ros::Time::now();
   float end = (1.0 / trajectory.RATE) * (joints.size() / joint_idx.size() - 1);
   for (float time = 0.0; time < end;
@@ -155,18 +170,20 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
     r.sleep();
   }
   
-  ROS_INFO("Completed trajectory %u", trajectory.slot);
+  ROS_INFO("Completed [%u]", trajectory.slot);
   return true;
 }
 
 bool play_service(atlas_replay::Play::Request &request,
                   atlas_replay::Play::Response &response) {
+  ROS_INFO("Starting play...");
   BOOST_FOREACH(uint8_t slot, request.slots) {
     atlas_replay::Upload::Request trajectory = load_trajectory(slot);
     if (!play_trajectory(trajectory))
       return false;
   }
   return true;
+  ROS_INFO("Finished play.");
 }
 
 bool upload_service(atlas_replay::Upload::Request &request,

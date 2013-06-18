@@ -103,6 +103,16 @@
       - /teleop/r_larm
       - /teleop/r_farm
       - /teleop/r_hand
+      - /teleop/right_palm
+      - /teleop/right_f0_base
+      - /teleop/right_f1_base
+      - /teleop/right_f2_base
+      - /teleop/right_f3_base
+      - /teleop/left_palm
+      - /teleop/left_f0_base
+      - /teleop/left_f1_base
+      - /teleop/left_f2_base
+      - /teleop/left_f3_base
     </rosparam>
   </node>
 
