@@ -147,6 +147,7 @@
   <node name="replay_client" ns="voodoo"
         pkg="atlas_replay" type="client" 
         output="$(arg output)" respawn="true" >
+    <remap from="robot_description" to="/robot_description" />
     <remap from="upload" to="/upload" />
     <remap from="/tf" to="/tf_ocu" />
   </node>

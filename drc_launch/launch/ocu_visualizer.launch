@@ -47,34 +47,34 @@
       - /atlas/r_larm
       - /atlas/r_farm
       - /atlas/r_hand
-      - /model/utorso
-      - /model/mtorso
-      - /model/ltorso
-      - /model/pelvis
-      - /model/l_uglut
-      - /model/l_lglut
-      - /model/l_uleg
-      - /model/l_lleg
-      - /model/l_talus
-      - /model/l_foot
-      - /model/r_uglut
-      - /model/r_lglut
-      - /model/r_uleg
-      - /model/r_lleg
-      - /model/r_talus
-      - /model/r_foot
-      - /model/l_clav
-      - /model/l_scap
-      - /model/l_uarm
-      - /model/l_larm
-      - /model/l_farm
-      - /model/l_hand
-      - /model/r_clav
-      - /model/r_scap
-      - /model/r_uarm
-      - /model/r_larm
-      - /model/r_farm
-      - /model/r_hand
+#      - /model/utorso
+#      - /model/mtorso
+#      - /model/ltorso
+#      - /model/pelvis
+#      - /model/l_uglut
+#      - /model/l_lglut
+#      - /model/l_uleg
+#      - /model/l_lleg
+#      - /model/l_talus
+#      - /model/l_foot
+#      - /model/r_uglut
+#      - /model/r_lglut
+#      - /model/r_uleg
+#      - /model/r_lleg
+#      - /model/r_talus
+#      - /model/r_foot
+#      - /model/l_clav
+#      - /model/l_scap
+#      - /model/l_uarm
+#      - /model/l_larm
+#      - /model/l_farm
+#      - /model/l_hand
+#      - /model/r_clav
+#      - /model/r_scap
+#      - /model/r_uarm
+#      - /model/r_larm
+#      - /model/r_farm
+#      - /model/r_hand
       - /teleop/utorso
       - /teleop/mtorso
       - /teleop/ltorso

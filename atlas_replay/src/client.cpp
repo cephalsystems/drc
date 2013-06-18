@@ -11,6 +11,10 @@
 #include "atlas_replay/Play.h"
 #include <fstream>
 #include "joints.h"
+#include <urdf/model.h>
+
+typedef std::map<int, float> joint_vector_t;
+typedef std::map<std::string, boost::shared_ptr<urdf::Joint> > joint_map_t;
 
 ros::NodeHandle *nh_;
 ros::NodeHandle *nh_private_;
@@ -21,7 +25,6 @@ sensor_msgs::JointState joint_states_;
 atlas_replay::Upload::Request trajectory_;
 bool is_recording_ = false;
 uint8_t record_flags_ = 0;
-typedef std::map<int, float> joint_vector_t;
 std::vector<joint_vector_t> recorded_states_;
 size_t timestep_ = 0;
 
@@ -33,12 +36,36 @@ void joint_state_callback(const sensor_msgs::JointStateConstPtr &msg)
 bool record_service(atlas_replay::Record::Request &request,
                     atlas_replay::Record::Response &response)
 {
+  // If we are recording, fill out the rest of this track
+  // with the current joint state
+  if (is_recording_  && record_flags_ && timestep_ > 0) {
+
+    // Get the last recorded state
+    joint_vector_t last_joints = recorded_states_[timestep_ - 1];
+
+    // Apply this recorded state to all future states
+    for (; timestep_ < recorded_states_.size(); ++timestep_)
+    {
+      for (size_t limb_idx = 0; limb_idx < LIMBS.size(); ++limb_idx)
+      {
+        if (record_flags_ & (1 << limb_idx))
+        {
+          BOOST_FOREACH(int joint_idx, LIMBS[limb_idx])
+          {
+            (recorded_states_[timestep_])[joint_idx] = last_joints[joint_idx];
+          }
+        }
+      }
+    }
+  }
+
+  // Stop recording at this point
+  is_recording_ = false;
+  timestep_ = 0;
+  record_flags_ = 0;
+
+  // If we are starting recording again, set stuff up
   if (request.record) {
-    
-    // Stop previous recording session
-    is_recording_ = false;
-    record_flags_ = 0;
-    timestep_ = 0;
 
     // Determine which parts are being used for this session
     if (request.torso) { 
@@ -66,11 +93,8 @@ bool record_service(atlas_replay::Record::Request &request,
 
     // Start new recording session
     is_recording_ = true;
-  } else {
-    
-    // Stop recording session
-    is_recording_ = false;
   }
+  
   return true;
 }
 
@@ -128,6 +152,22 @@ int main(int argc, char** argv)
   nh_ = new ros::NodeHandle();
   nh_private_ = new ros::NodeHandle("~");
 
+  // Retrieve current robot model
+  std::string robot_description;
+  if (!nh_->getParam("robot_description", robot_description))
+  {
+    ROS_ERROR("No robot description parameter found!");
+    return -1;
+  }
+
+  // Load robot model from parameter string
+  urdf::Model urdf;
+  if (!urdf.initString(robot_description))
+  {
+    ROS_ERROR("Failed to parse the URDF");
+    return -1;
+  }
+  
   // Listen and publish joint states
   ros::Subscriber sub_joint_states =
       nh_->subscribe("joint_states", 1, joint_state_callback,
@@ -151,8 +191,9 @@ int main(int argc, char** argv)
     ros::spinOnce();
     r.sleep();
 
-    // Do nothing if we are not recording
+    // Just forward joint states if we are not recording
     if (!is_recording_) {
+      pub_joint_states.publish(joint_states_);
       continue;
     }
 
@@ -194,15 +235,33 @@ int main(int argc, char** argv)
     
     // Publish the prerecorded joint states for the existing trajectory
     sensor_msgs::JointState state;
-    for (size_t joint_idx = 0; joint_idx < ATLAS_JOINT_NAMES.size(); ++joint_idx)
+    BOOST_FOREACH(const joint_map_t::value_type &joint, urdf.joints_)
     {
-      // Add the joint value, if it was recorded
-      joint_vector_t::const_iterator joint_it = joints.find(joint_idx);
-      if (joint_it != joints.end()) {
-        state.name.push_back(ATLAS_JOINT_NAMES[joint_idx]);      
-        state.position.push_back((*joint_it).second);
+      // Add the name to the joint state list and assume zero value
+      state.name.push_back(joint.first);
+      state.position.push_back(0.0);
+      
+      // Search for this joint in the ATLAS JOINT VECTOR
+      std::vector<std::string>::const_iterator joint_name_it
+          = std::find(ATLAS_JOINT_NAMES.begin(),
+                      ATLAS_JOINT_NAMES.end(), joint.first);
+
+      // If this is an atlas joint, try to get its value
+      if (joint_name_it != ATLAS_JOINT_NAMES.end())
+      {
+        size_t joint_idx = joint_name_it - ATLAS_JOINT_NAMES.begin();
+
+        // Add the joint value, if it was recorded
+        joint_vector_t::const_iterator joint_it = joints.find(joint_idx);
+        if (joint_it != joints.end())
+        {
+          state.position.back() = (*joint_it).second;
+        }
       }
     }
+
+    state.header.stamp = ros::Time::now();
+    pub_joint_states.publish(state);
 
     // Increment to next timestep
     timestep_++;

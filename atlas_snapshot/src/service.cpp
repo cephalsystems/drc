@@ -33,8 +33,8 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
   
   // Get current laser scan point cloud for last few seconds
   laser_assembler::AssembleScans scan_params;
-  scan_params.request.begin = ros::Time::now() - ros::Duration(10.0);
-  scan_params.request.end = ros::Time::now();
+  scan_params.request.begin = ros::Time::now() - ros::Duration(20.0);
+  scan_params.request.end = ros::Time::now() + ros.Duration(5.0);
 
   // Ask assembler to build this point cloud
   if (scan_client.call(scan_params))
@@ -48,7 +48,7 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
     sensor_msgs::PointCloud &cloud = scan_params.response.cloud;
 
     // Allocate buffer to hold a depth panorama
-    cv::Mat image_buffer = cv::Mat(height, width, CV_8U, 255);
+    cv::Mat image_buffer = cv::Mat(height, width, CV_8U, 0);
 
     // Iterate through each point, projecting into the appropriate pixel
     BOOST_FOREACH(const geometry_msgs::Point32 &point, cloud.points)
@@ -60,12 +60,12 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
       double i = remap(atan2(point.z, sqrt(point.x*point.x + point.y*point.y)),
                        -fovy/2.0, fovy/2.0,
                        (double)height, 0);
-      double d = remap(sqrt(point.x*point.x + point.y*point.y),
-                       0.0, 30.0,
+      double d = remap(1.0 / sqrt(point.x*point.x + point.y*point.y),
+                       (1.0/30.0), (1.0/0.25),
                        0, 255);
 
       // Store the closest point return
-      if (d <= image_buffer.at<uint8_t>((int)i,(int)j))
+      if (d > image_buffer.at<uint8_t>((int)i,(int)j))
       {
         cv::circle(image_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
       }

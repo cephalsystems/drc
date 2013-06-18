@@ -61,6 +61,16 @@ class HydraControl():
             except rospy.ServiceException, e:
                 print "Execution command failed: %s" % str(e)
 
+        if left.buttons[6] and not left_old.buttons[6] and not self.record_msg.record:
+            try:
+                print "Erasing trajectory."
+                send_msg = PlayRequest()
+                send_msg.slots = [] # don't save trajectory, don't execute (erase)
+                self.send(send_msg)
+                print "Trajectory erased."
+            except rospy.ServiceException, e:
+                print "Execution command failed: %s" % str(e)
+
         if not self.record_msg.record:
             if left.buttons[1] and not left_old.buttons[1]:
                 self.record_msg.left_leg = not self.record_msg.left_leg
