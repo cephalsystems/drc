@@ -12,22 +12,24 @@ BUTTON_NAMES = [ 'trigger', '1', '2', '3', '4', 'start', 'stick' ]
 
 class HydraControl():
 
+    def status(self, message):
+        msg = String()
+        msg.data = message
+        self.commands.publish(msg)
+
+    def defaultstatus(self):
+        self.status("text:setText('[%s] %s')" %
+                    (str(self.slot),
+                     "REC" if self.record_msg.record else "---"))
+
     def init(self):
-        self.status = rospy.Publisher("record_state", String, tcp_nodelay=True)
+        self.commands = rospy.Publisher("commands", String, tcp_nodelay=True)
         self.br = tf.TransformBroadcaster()
         self.prev_msg = None
         self.slot = 0
 
-        print 'Waiting for record service'
-        rospy.wait_for_service('record')
         self.record = rospy.ServiceProxy('record', Record)
-
-        print 'Waiting for send service'
-        rospy.wait_for_service('send')
         self.send = rospy.ServiceProxy('send', Play)
-
-        print 'Waiting for play service'
-        rospy.wait_for_service('play')
         self.play = rospy.ServiceProxy('play', Play)
 
         self.record_msg = RecordRequest()
@@ -54,6 +56,7 @@ class HydraControl():
         # Left paddle bindings
         if left.buttons[0] and not left_old.buttons[0] and not self.record_msg.record:
             try:
+                self.status("text:setText('Executing [0]')")
                 print "Executing current trajectory."
                 send_msg = PlayRequest()
                 send_msg.slots = [0, 1] # don't save trajectory, execute immediately
@@ -65,12 +68,16 @@ class HydraControl():
         if left.buttons[6] and not left_old.buttons[6] and not self.record_msg.record:
             try:
                 if self.slot == 0:
+                    self.status("text:setText('Erasing...')",
+                                str(self.slot))
                     print "Erasing trajectory."
                     send_msg = PlayRequest()
                     send_msg.slots = [] # don't save trajectory, don't execute (erase)
                     self.send(send_msg)
                     print "Trajectory erased."
                 else:
+                    self.status("text:setText('Saving [%s]')", 
+                                str(self.slot))
                     print "Saving trajectory to slot [%d]." % self.slot
                     send_msg = PlayRequest()
                     send_msg.slots = [self.slot] # save trajectory, do not execute
@@ -85,6 +92,7 @@ class HydraControl():
             else:
                 self.slot = self.slot + 1;
             print "Changed active slot to [%d]" % self.slot
+            self.defaultstatus()
 
         if left.joy[1] < -0.9 and left_old.joy[1] >= -0.9:
             if self.slot <= 0:
@@ -92,6 +100,7 @@ class HydraControl():
             else:
                 self.slot = self.slot - 1;
             print "Changed active slot to [%d]" % self.slot
+            self.defaultstatus()
 
         if not self.record_msg.record:
             changed = False
@@ -118,6 +127,7 @@ class HydraControl():
 
             # Send update to atlas_replay
             if changed:
+                self.defaultstatus()
                 try:
                     self.record(self.record_msg)
                 except rospy.ServiceException, e:
@@ -129,9 +139,7 @@ class HydraControl():
                 self.record(self.record_msg)
             except rospy.ServiceException, e:
                 print "Recording command failed: %s" % str(e)
-
-        # Publish current state of system and record old state
-        self.status.publish(str(self.record_msg))
+            self.defaultstatus()
 
 if __name__ == '__main__':
     rospy.init_node('hydra_control')

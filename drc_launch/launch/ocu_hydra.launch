@@ -21,6 +21,7 @@
     <remap from="record" to="/voodoo/record" />
     <remap from="send" to="/voodoo/send" />
     <remap from="play" to="/play" />
+    <remap from="commands" to="/snap/commands" />
   </node>
 
 </launch>
