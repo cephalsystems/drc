@@ -55,6 +55,11 @@ atlas_msgs::AtlasCommand initialize_command() {
     command.kp_velocity[i]  = 0; // TODO: should this be non-zero?
   }
 
+  // Point the neck down
+  command.position[3] = 0.3;
+  command.k_effort[3] = 255;
+
+  command.header.stamp = ros::Time::now();
   return command;
 }
 
@@ -218,6 +223,14 @@ int main(int argc, char** argv)
   pub_atlas_command_
       = nh_->advertise<atlas_msgs::AtlasCommand>("/atlas/atlas_command", 1);
 
+  // Send initial command to get robot to starting pose
+  for (int i = 0; i < 100; ++i) {
+    atlas_msgs::AtlasCommand command = initialize_command();
+    pub_atlas_command_.publish(command);
+  }
+
   // Enter ROS main loop
+  ROS_INFO("Replay service started.");
   ros::spin();
+  ROS_INFO("Replay service stopped.");
 }

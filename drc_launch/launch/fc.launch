@@ -34,7 +34,7 @@
           pkg="laser_assembler" type="laser_scan_assembler"
           output="$(arg output)" respawn="true">
       <remap from="scan" to="/multisense_sl/laser/scan"/>
-      <param name="max_scans" type="int" value="800" />
+      <param name="max_scans" type="int" value="125" />
       <param name="fixed_frame" type="string" value="/pelvis" />
     </node>
   </group>
