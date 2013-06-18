@@ -38,4 +38,6 @@ rosbuild_add_executable(frame_stream src/frame_stream.cpp)
 target_link_libraries(frame_stream msgpack)
 rosbuild_link_boost(frame_stream thread system)
 
-
+rosbuild_add_executable(string_stream src/string_stream.cpp)
+target_link_libraries(string_stream msgpack)
+rosbuild_link_boost(string_stream thread system)

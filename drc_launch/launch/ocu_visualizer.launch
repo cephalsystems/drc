@@ -106,4 +106,10 @@
     </rosparam>
   </node>
 
+  <node name="string_stream" pkg="msgpack_streamer" type="string_stream"
+        output="$(arg output)" respawn="true">
+    <param name="port" value="6669" />
+    <remap from="commands" to="/snap/commands" />
+  </node>
+
 </launch>
