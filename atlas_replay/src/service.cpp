@@ -59,7 +59,7 @@ atlas_msgs::AtlasCommand initialize_command() {
 }
 
 inline std::string name_trajectory(uint8_t slot) {
-  return boost::str(boost::format("traj_%d.dat") % slot);
+  return boost::str(boost::format("traj_%u.dat") % (int)slot);
 }
 
 void save_trajectory(atlas_replay::Upload::Request &trajectory) {

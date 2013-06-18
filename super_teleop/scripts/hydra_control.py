@@ -16,6 +16,7 @@ class HydraControl():
         self.status = rospy.Publisher("record_state", String, tcp_nodelay=True)
         self.br = tf.TransformBroadcaster()
         self.prev_msg = None
+        self.slot = 0
 
         print 'Waiting for record service'
         rospy.wait_for_service('record')
@@ -63,13 +64,34 @@ class HydraControl():
 
         if left.buttons[6] and not left_old.buttons[6] and not self.record_msg.record:
             try:
-                print "Erasing trajectory."
-                send_msg = PlayRequest()
-                send_msg.slots = [] # don't save trajectory, don't execute (erase)
-                self.send(send_msg)
-                print "Trajectory erased."
+                if self.slot == 0:
+                    print "Erasing trajectory."
+                    send_msg = PlayRequest()
+                    send_msg.slots = [] # don't save trajectory, don't execute (erase)
+                    self.send(send_msg)
+                    print "Trajectory erased."
+                else:
+                    print "Saving trajectory to slot [%d]." % self.slot
+                    send_msg = PlayRequest()
+                    send_msg.slots = [self.slot] # save trajectory, do not execute
+                    self.send(send_msg)
+                    print "Saved trajectory."
             except rospy.ServiceException, e:
                 print "Execution command failed: %s" % str(e)
+
+        if left.joy[1] > 0.9 and left_old.joy[1] <= 0.9:
+            if self.slot >= 255:
+                self.slot = 0
+            else:
+                self.slot = self.slot + 1;
+            print "Changed active slot to [%d]" % self.slot
+
+        if left.joy[1] < -0.9 and left_old.joy[1] >= -0.9:
+            if self.slot <= 0:
+                self.slot = 255
+            else:
+                self.slot = self.slot - 1;
+            print "Changed active slot to [%d]" % self.slot
 
         if not self.record_msg.record:
             if left.buttons[1] and not left_old.buttons[1]:

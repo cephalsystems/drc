@@ -142,7 +142,9 @@ bool send_service(atlas_replay::Play::Request &request,
 
   // Return result of upload
   ROS_INFO("Uploading trajectory: %u", trajectory_.slot);
-  return upload_.call(upload_call);
+  bool success = upload_.call(upload_call);
+  ROS_INFO("Upload complete.", trajectory_.slot);
+  return success;
 }                    
 
 int main(int argc, char** argv)
