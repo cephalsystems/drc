@@ -43,9 +43,9 @@
                 offset: 3.141
             "13":
                 joint: "left_f3_j0"
-                min: 2.618
-                max: -2.618
-                offset: 0.0
+                min: 11.0
+                max: -11.0
+                offset: 1.3
             "5":
                 joint: "r_arm_usy"
                 min: -2.618
@@ -78,9 +78,9 @@
                 offset: 3.141
             "6":
                 joint: "right_f3_j0"
-                min: 2.618
-                max: -2.618
-                offset: 0.0
+                min: 11.0
+                max: -11.0
+                offset: 1.3
         ttyUSB1:
             "0":
                 joint: "back_lbz"
