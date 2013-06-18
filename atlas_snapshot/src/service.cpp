@@ -103,13 +103,13 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
       for (size_t point_idx = 0; point_idx < cloud.points.size(); ++point_idx)
       {
         // Compute color from intensity in camera image
-        geometry_msgs::Point32 point = cloud.points[point_idx];
+        geometry_msgs::Point32 point = camera_cloud.points[point_idx];
         cv::Point3d point_cv(point.x, point.y, point.z);
         cv::Point2d point_uv = entry.second.model.project3dToPixel(point_cv);
-        if (point_uv.x >=0 && point_uv.x < entry.second.image.rows
-            && point_uv.y >= 0 && point_uv.y < entry.second.image.cols)
+        if (point_uv.x >=0 && point_uv.x < entry.second.image.cols
+            && point_uv.y >= 0 && point_uv.y < entry.second.image.rows)
         {
-          colors[point_idx] = entry.second.image.at<uint8_t>(point_uv.x, point_uv.y);
+          colors[point_idx] = entry.second.image.at<uint8_t>(point_uv.y, point_uv.x);
         }
       }
     }
@@ -200,9 +200,10 @@ int main(int argc, char *argv[])
                                              snapshot_callback,
                                              ros::TransportHints().udp().tcp());
 
-  image_transport::ImageTransport it(nh);
-  image_transport::CameraSubscriber sub = it.subscribeCamera("/multisense_sl/camera/left/image_mono", 1, image_callback);
   tf_listener_ = new tf::TransformListener();
+  image_transport::ImageTransport it(nh);
+  image_transport::CameraSubscriber sub_left = it.subscribeCamera("/multisense_sl/camera/left/image_mono", 1, image_callback);
+  image_transport::CameraSubscriber sub_right = it.subscribeCamera("/multisense_sl/camera/right/image_mono", 1, image_callback);
   
   // Spin until shutdown
   ROS_INFO("Started snapshot service.");
