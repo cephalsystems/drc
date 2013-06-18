@@ -94,20 +94,34 @@ class HydraControl():
             print "Changed active slot to [%d]" % self.slot
 
         if not self.record_msg.record:
+            changed = False
+
             if left.buttons[1] and not left_old.buttons[1]:
                 self.record_msg.left_leg = not self.record_msg.left_leg
+                changed = True
 
             if left.buttons[2] and not left_old.buttons[2]:
                 self.record_msg.right_leg = not self.record_msg.right_leg
+                changed = True
 
             if left.buttons[3] and not left_old.buttons[3]:
                 self.record_msg.left_arm = not self.record_msg.left_arm
+                changed = True
 
             if left.buttons[4] and not left_old.buttons[4]:
                 self.record_msg.right_arm = not self.record_msg.right_arm
+                changed = True
             
             if left.buttons[5] and not left_old.buttons[5]:
                 self.record_msg.torso = not self.record_msg.torso
+                changed = True
+
+            # Send update to atlas_replay
+            if changed:
+                try:
+                    self.record(self.record_msg)
+                except rospy.ServiceException, e:
+                    print "Update command failed: %s" % str(e)
                        
         if left.trigger > 0.9 and left_old.trigger <= 0.9:
             self.record_msg.record = not self.record_msg.record

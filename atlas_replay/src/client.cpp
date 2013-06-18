@@ -6,12 +6,14 @@
 #include <boost/shared_array.hpp>
 #include <boost/foreach.hpp>
 #include <sensor_msgs/JointState.h>
+#include <std_msgs/String.h>
 #include "atlas_replay/Upload.h"
 #include "atlas_replay/Record.h"
 #include "atlas_replay/Play.h"
 #include <fstream>
 #include "joints.h"
 #include <urdf/model.h>
+#include <iostream>
 
 typedef std::map<int, float> joint_vector_t;
 typedef std::map<std::string, boost::shared_ptr<urdf::Joint> > joint_map_t;
@@ -64,33 +66,32 @@ bool record_service(atlas_replay::Record::Request &request,
   timestep_ = 0;
   record_flags_ = 0;
 
+  // Determine which parts are being used for this session
+  if (request.torso) { 
+    record_flags_ |= 1 << trajectory_.USES_TORSO;
+  }
+  
+  if (request.left_leg) {
+    record_flags_ |= 1 << trajectory_.USES_LEFT_LEG;
+  }
+  
+  if (request.right_leg) {
+    record_flags_ |= 1 << trajectory_.USES_RIGHT_LEG;
+  }
+  
+  if (request.left_arm) {
+    record_flags_ |= 1 << trajectory_.USES_LEFT_ARM;
+  }
+  
+  if (request.right_arm) {
+    record_flags_ |= 1 << trajectory_.USES_RIGHT_ARM;
+  }
+  
   // If we are starting recording again, set stuff up
   if (request.record) {
-
-    // Determine which parts are being used for this session
-    if (request.torso) { 
-      record_flags_ |= 1 << trajectory_.USES_TORSO;
-    }
-
-    if (request.left_leg) {
-      record_flags_ |= 1 << trajectory_.USES_LEFT_LEG;
-    }
-
-    if (request.right_leg) {
-      record_flags_ |= 1 << trajectory_.USES_RIGHT_LEG;
-    }
-
-    if (request.left_arm) {
-      record_flags_ |= 1 << trajectory_.USES_LEFT_ARM;
-    }
-
-    if (request.right_arm) {
-      record_flags_ |= 1 << trajectory_.USES_RIGHT_ARM;
-    }
-    
     // Combine all the parts for the trajectory
     trajectory_.flags |= record_flags_;
-
+    
     // Start new recording session
     is_recording_ = true;
   }
@@ -143,7 +144,7 @@ bool send_service(atlas_replay::Play::Request &request,
   // Return result of upload
   ROS_INFO("Uploading trajectory: %u", trajectory_.slot);
   bool success = upload_.call(upload_call);
-  ROS_INFO("Upload complete.", trajectory_.slot);
+  ROS_INFO("Upload complete.");
   return success;
 }                    
 
@@ -176,6 +177,8 @@ int main(int argc, char** argv)
                      ros::TransportHints().udp().tcp());
   ros::Publisher pub_joint_states =
       nh_->advertise<sensor_msgs::JointState>("preview_states", 1);
+  ros::Publisher pub_joint_usage =
+      nh_->advertise<std_msgs::String>("commands", 1);
   
   // Connect to service to record and upload trajectories
   upload_ = nh_->serviceClient<atlas_replay::Upload>("upload");
@@ -193,6 +196,31 @@ int main(int argc, char** argv)
     ros::spinOnce();
     r.sleep();
 
+    // Send out command to highlight only used joints
+    std::stringstream ss;
+    ss << "robot:clearHighlights()" << std::endl;
+    for (size_t limb_idx = 0; limb_idx < LIMBS.size(); ++limb_idx)
+    {
+      if (record_flags_ & (1 << limb_idx))
+      {
+        BOOST_FOREACH(int joint_idx, LIMBS[limb_idx])
+        {
+          boost::shared_ptr<const urdf::Joint> joint
+              = urdf.getJoint(ATLAS_JOINT_NAMES[joint_idx]);
+          if (joint)
+          {
+            ss << boost::format("robot:setHighlight('/teleop/%s', true)")
+                % joint->child_link_name.c_str() << std::endl;
+          }
+        }
+      }
+    
+    }
+
+    std_msgs::String highlight_command;
+    highlight_command.data = ss.str();
+    pub_joint_usage.publish(highlight_command);
+    
     // Just forward joint states if we are not recording
     if (!is_recording_) {
       pub_joint_states.publish(joint_states_);
