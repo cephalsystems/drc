@@ -32,18 +32,16 @@ def signum(int):
 class AtlasTeleop(object):
 
     # Keyboard teleop bindings
-    keys = {'u': {"steps":5, "radius": 2   }, \
-            'i': {"steps":5, "radius": 100 }, \
-            'o': {"steps":5, "radius":-2   }, \
-            'j': {"steps":5, "radius": 0   }, \
-            'k': {"forward":0, "lateral":0, "turn": 0}, \
-            'l': {"forward":0, "lateral":-1, "turn": 0}, \
-            'm': {"forward":0, "lateral":0, "turn": 1}, \
-            ',': {"forward":-0.5, "lateral":0, "turn": 0}, \
-            '.': {"forward":0, "lateral":0, "turn":-1}}
+    keys = { 
+        'u': {"steps":4, "radius": 1.4 }, 
+        'i': {"steps":4, "radius": 100 }, 
+        'o': {"steps":4, "radius":-1.4 }, 
+        'j': {"steps":4, "radius": 0.1 }, 
+        'l': {"steps":4, "radius":-0.1 }
+        }
     
     # BDI Controller bindings 
-    params = {"Forward Stride Length":{ "value":0.10, "min":0, "max":1, \
+    params = {"Forward Stride Length":{ "value":0.15, "min":0, "max":1, \
                                 "type":"float"},
               "Stride Length Interval":{"value":0.05, "min":0, "max":1, \
                                 "type":"float"},
@@ -132,11 +130,10 @@ class AtlasTeleop(object):
         if (R > L):
             dTh = math.asin(L / R)
         else:
-            L = 0
-            dTh = T
+            dTh = signum(R) * T
 
-        dX = R*math.sin(dTh)        
-        dY = R*(1 - math.cos(dTh))
+        dX = R * math.sin(dTh)
+        dY = R * (1 - math.cos(dTh))
         
         # Transform to next foot position
         dX = dX + signum(last_step.foot_index) * W/2 * math.sin(dTh)
