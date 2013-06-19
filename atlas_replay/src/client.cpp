@@ -22,7 +22,8 @@ ros::NodeHandle *nh_;
 ros::NodeHandle *nh_private_;
 ros::ServiceClient upload_;
 
-sensor_msgs::JointState joint_states_;
+sensor_msgs::JointState model_states_;
+sensor_msgs::JointState reference_states_;
 
 atlas_replay::Upload::Request trajectory_;
 bool is_recording_ = false;
@@ -30,9 +31,14 @@ uint8_t record_flags_ = 0;
 std::vector<joint_vector_t> recorded_states_;
 size_t timestep_ = 0;
 
-void joint_state_callback(const sensor_msgs::JointStateConstPtr &msg)
+void model_state_callback(const sensor_msgs::JointStateConstPtr &msg)
 {
-  joint_states_ = *msg;
+  model_states_ = *msg;
+}
+
+void reference_state_callback(const sensor_msgs::JointStateConstPtr &msg)
+{
+  reference_states_ = *msg;
 }
 
 bool record_service(atlas_replay::Record::Request &request,
@@ -139,7 +145,7 @@ bool send_service(atlas_replay::Play::Request &request,
     trajectory_.flags |= 1 << trajectory_.EXECUTE;
   }
 
-  // Upload trajectory and clear local copy
+  // Upload trajectory
   atlas_replay::Upload upload_call;
   upload_call.request = trajectory_;
 
@@ -174,8 +180,11 @@ int main(int argc, char** argv)
   }
   
   // Listen and publish joint states
-  ros::Subscriber sub_joint_states =
-      nh_->subscribe("joint_states", 1, joint_state_callback,
+  ros::Subscriber sub_model_states =
+      nh_->subscribe("model_states", 1, model_state_callback,
+                     ros::TransportHints().udp().tcp());
+  ros::Subscriber sub_reference_states =
+      nh_->subscribe("reference_states", 1, reference_state_callback,
                      ros::TransportHints().udp().tcp());
   ros::Publisher pub_joint_states =
       nh_->advertise<sensor_msgs::JointState>("preview_states", 1);
@@ -216,18 +225,11 @@ int main(int argc, char** argv)
           }
         }
       }
-    
     }
 
     std_msgs::String highlight_command;
     highlight_command.data = ss.str();
     pub_joint_usage.publish(highlight_command);
-    
-    // Just forward joint states if we are not recording
-    if (!is_recording_) {
-      pub_joint_states.publish(joint_states_);
-      continue;
-    }
 
     // Retrieve existing joints if they exist
     joint_vector_t joints;
@@ -245,57 +247,58 @@ int main(int argc, char** argv)
         {
           // See if this joint is in the joint state message
           std::vector<std::string>::const_iterator pos_it
-              = std::find(joint_states_.name.begin(),
-                          joint_states_.name.end(),
+              = std::find(model_states_.name.begin(),
+                          model_states_.name.end(),
                           AUGMENTED_ATLAS_JOINT_NAMES[joint_idx]);
 
           // Fill in the joint value from the message, or zero it
-          joints[joint_idx] = (pos_it == joint_states_.name.end())
-              ? 0.0 : joint_states_.position[pos_it - joint_states_.name.begin()];
+          joints[joint_idx] = (pos_it == model_states_.name.end())
+              ? 0.0 : model_states_.position[pos_it - model_states_.name.begin()];
         }
-      }
-    }
-    
-    // Add joints to the trajectory array
-    if (record_flags_) {
-      if (recorded_states_.size() > timestep_) {
-        recorded_states_[timestep_] = joints;
-      } else {
-        recorded_states_.push_back(joints);
       }
     }
     
     // Publish the prerecorded joint states for the existing trajectory
-    sensor_msgs::JointState state;
-    BOOST_FOREACH(const joint_map_t::value_type &joint, urdf.joints_)
+    sensor_msgs::JointState state = reference_states_;
+    BOOST_FOREACH(const joint_vector_t::value_type &joint, joints)
     {
-      // Add the name to the joint state list and assume zero value
-      state.name.push_back(joint.first);
-      state.position.push_back(0.0);
+      // See if this joint is in the joint state message
+      std::vector<std::string>::const_iterator ref_it
+          = std::find(reference_states_.name.begin(),
+                      reference_states_.name.end(),
+                      AUGMENTED_ATLAS_JOINT_NAMES[joint.first]);
       
-      // Search for this joint in the ATLAS JOINT VECTOR
-      std::vector<std::string>::const_iterator joint_name_it
-          = std::find(AUGMENTED_ATLAS_JOINT_NAMES.begin(),
-                      AUGMENTED_ATLAS_JOINT_NAMES.end(), joint.first);
-
-      // If this is an atlas joint, try to get its value
-      if (joint_name_it != AUGMENTED_ATLAS_JOINT_NAMES.end())
+      if (ref_it != reference_states_.name.end())
       {
-        size_t joint_idx = joint_name_it - AUGMENTED_ATLAS_JOINT_NAMES.begin();
-
-        // Add the joint value, if it was recorded
-        joint_vector_t::const_iterator joint_it = joints.find(joint_idx);
-        if (joint_it != joints.end())
-        {
-          state.position.back() = (*joint_it).second;
-        }
+        int state_idx = ref_it - reference_states_.name.begin();
+        state.position[state_idx] = joint.second;
+      }
+      else
+      {
+        state.name.push_back(AUGMENTED_ATLAS_JOINT_NAMES[joint.first]);
+        state.position.push_back(joint.second);
       }
     }
 
+    // Publish preview of current joint state
     state.header.stamp = ros::Time::now();
     pub_joint_states.publish(state);
 
-    // Increment to next timestep
-    timestep_++;
+    // Record trajectory state if recording
+    if (is_recording_)
+    {
+      if (record_flags_) 
+      {
+        // Add joints to the trajectory array
+        if (recorded_states_.size() > timestep_) {
+          recorded_states_[timestep_] = joints;
+        } else {
+          recorded_states_.push_back(joints);
+        }
+      }
+
+      // Increment to next timestep
+      timestep_++;
+    }
   }
 }
