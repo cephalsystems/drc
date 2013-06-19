@@ -135,10 +135,13 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
                        0, 255);
 
       // Store the closest point return
-      if (d > depth_buffer.at<uint8_t>((int)i,(int)j))
-      {
-        cv::circle(depth_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
-        cv::circle(image_buffer, cv::Point(j,i), 2, colors[point_idx], -1);
+      if (i >= 0 && i < height && j >=0 && j < width)
+      {         
+        if (d > depth_buffer.at<uint8_t>((int)i,(int)j))
+        {
+          cv::circle(depth_buffer, cv::Point(j,i), 2, (uint8_t)d, -1);
+          cv::circle(image_buffer, cv::Point(j,i), 2, colors[point_idx], -1);
+        }
       }
     }
     
