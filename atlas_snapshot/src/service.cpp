@@ -127,8 +127,8 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
       double j = remap(atan2(point.y, point.x),
                        -fovx/2.0, fovx/2.0,
                        (double)width, 0);
-      double i = remap(atan2(point.z, sqrt(point.x*point.x + point.y*point.y)),
-                       -fovy/2.0, fovy/2.0,
+      double i = remap(point.z / sqrt(point.x*point.x + point.y*point.y + 1e-8),
+                       -tan(fovy/2.0), tan(fovy/2.0),
                        (double)height, 0);
       double d = remap(1.0 / sqrt(point.x*point.x + point.y*point.y),
                        (1.0/30.0), (1.0/0.25),
