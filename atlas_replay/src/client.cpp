@@ -95,7 +95,7 @@ bool record_service(atlas_replay::Record::Request &request,
     
     // Start new recording session
     is_recording_ = true;
-    ROS_INFO("[RECORDING]");
+    ROS_INFO(record_flags_ ? "[RECORDING]" : "[PLAYING]");
   }
   
   return true;

@@ -156,9 +156,9 @@ class HydraControl():
             self.mode.publish("harnessed")
             self.control_mode.publish("Freeze")
             self.control_mode.publish("StandPrep")
-            rospy.sleep(2.0)
+            rospy.sleep(4.0)
             self.mode.publish("nominal")
-            rospy.sleep(0.3)
+            rospy.sleep(0.6)
             self.control_mode.publish("Stand")
             print "Reset complete."
 

@@ -199,9 +199,29 @@ int main(int argc, char *argv[])
     if (fd_iter == ports.end())
       continue;
     int fd = (*fd_iter).second;
-    
+
     // Clear system buffer
     tcflush(fd, TCIFLUSH);
+
+    // Send a bunch of pings just to get baud rate detected
+    uint8_t response = 0;
+    int attempt = 0;
+    
+    for (; attempt < 3; ++attempt) {
+      if (write(fd, "\x2\x27", 2) != 2) {
+        ROS_ERROR("Error %d writing to %s: %s",
+                  errno, mapping.port_name.c_str(), strerror(errno));
+        break;
+      }
+      
+      if (read(fd, ((char*)&response), 1) > 0 && response == 0x59) {
+          break;
+      }
+    }
+
+    if (attempt >= 3) {
+      ROS_WARN("Improper ping response from %s.", mapping.port_name.c_str());
+    }
     
     // Turn on power to pullup pin RB7
     if (write(fd, "\x05\x35\x12\x00\x01", 5) != 5) {

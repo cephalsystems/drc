@@ -6,7 +6,6 @@
         pkg="voodoo_driver" type="driver" 
         output="$(arg output)">
     <remap from="robot_description" to="/robot_description" />
-    <remap from="/tf" to="/tf_ocu" />
     <param name="rate" value="60" />
     <rosparam param="mapping" command="delete"/>
     <rosparam param="mapping">
@@ -146,7 +145,6 @@
     <remap from="robot_description" to="/robot_description" />
     <param name="tf_prefix" value="model" />
     <param name="publish_frequency" value="60" />
-    <remap from="/tf" to="/tf_ocu" />
   </node>
 
   <node name="replay_client" ns="voodoo"
@@ -155,7 +153,6 @@
     <remap from="robot_description" to="/robot_description" />
     <remap from="upload" to="/upload" />
     <remap from="commands" to="/snap/commands" />
-    <remap from="/tf" to="/tf_ocu" />
   </node>
 
   <node name="replay_state_publisher" ns="voodoo"
@@ -165,21 +162,18 @@
     <remap from="robot_description" to="/robot_description" />
     <param name="tf_prefix" value="teleop" />
     <param name="publish_frequency" value="60" />
-    <remap from="/tf" to="/tf_ocu" />
   </node>
   
   <node name="voodoo_torso_link" ns="voodoo"
         pkg="tf" type="static_transform_publisher" 
         args="0 0 0 0 0 0 /atlas/pelvis /teleop/pelvis 100"
         output="$(arg output)" respawn="true">
-    <remap from="/tf" to="/tf_ocu" />
   </node>
 
   <node name="replay_torso_link" ns="voodoo"
         pkg="tf" type="static_transform_publisher" 
         args="0 0 0 0 0 0 /atlas/pelvis /model/pelvis 100"
         output="$(arg output)" respawn="true">
-    <remap from="/tf" to="/tf_ocu" />
   </node>
 
 </launch>
