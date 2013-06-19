@@ -1,7 +1,6 @@
 #include <ros/ros.h>
 #include "atlas_snapshot/Snapshot.h"
 #include "atlas_joints.h"
-#include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/Image.h>
 #include <tf/transform_broadcaster.h>
@@ -14,9 +13,13 @@
  * Current robot state.
  */
 sensor_msgs::Image image_;
-sensor_msgs::PointCloud cloud_;
 sensor_msgs::JointState joints_;
 tf::Transform imu_ = tf::Transform::getIdentity();
+
+/**
+ * Global node connections
+ */
+image_transport::Publisher pub_image_;
 
 /**
  * Calls service to update snapshot state with incoming message.
@@ -66,6 +69,12 @@ void snapshot_callback(const atlas_snapshot::Snapshot &msg)
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
+
+  // Send out the latest image
+  if (image_.data.size() > 0) {
+    image_.header.stamp = ros::Time::now();
+    pub_image_.publish(image_);
+  }
 }
 
 /**
@@ -80,15 +89,12 @@ int main(int argc, char *argv[])
 
   // Connect to a bunch of topics
   tf::TransformBroadcaster br;
-
   ros::Publisher pub_joint_state =
       nh.advertise<sensor_msgs::JointState>("joint_states", 1, true);
-  ros::Publisher pub_points =
-      nh.advertise<sensor_msgs::PointCloud>("points", 1);
   ros::Subscriber sub_snapshot = nh.subscribe("snapshot", 1, snapshot_callback);
 
   image_transport::ImageTransport it(nh);
-  image_transport::Publisher pub_image = it.advertise("image", 1);
+  pub_image_ = it.advertise("image", 1);
   
   // Set up fixed publish rate
   int rate;
@@ -97,23 +103,11 @@ int main(int argc, char *argv[])
   
   // Republish the latest snapshot on regular intervals
   while(ros::ok()) {
-    
+
     // Send out the latest joint state
     if (joints_.name.size() > 0) {
       joints_.header.stamp = ros::Time::now();
       pub_joint_state.publish(joints_);
-    }
-
-    // Send out the latest point cloud
-    if (cloud_.points.size() > 0) {
-      cloud_.header.stamp = ros::Time::now();
-      pub_points.publish(cloud_);
-    }
-
-    // Send out the latest image
-    if (image_.data.size() > 0) {
-      image_.header.stamp = ros::Time::now();
-      pub_image.publish(image_);
     }
 
     // Send out the latest IMU transformation for the head
