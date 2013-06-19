@@ -2,6 +2,8 @@
   <arg name="output" default="log" />
 
   <group>
+    <param name="/use_sim_time" value="true" />
+
     <node name="atlas_spindle_adjuster" 
           type="rostopic" pkg="rostopic"
           args="pub -r1 /multisense_sl/set_spindle_speed std_msgs/Float64 1.0"
