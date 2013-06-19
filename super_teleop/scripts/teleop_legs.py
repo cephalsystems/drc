@@ -47,17 +47,12 @@ class AtlasTeleop(object):
                                 "type":"float"},
               "Stride Length Interval":{"value":0.05, "min":0, "max":1, \
                                 "type":"float"},
-              "Lateral Stride Length":{ "value":0.15, "min":0, "max":1, \
-                                "type":"float"},
               "Step Height":{"value":0, "min":-1, "max":1, "type":"float"}, \
               "Stride Duration":{ "value":0.63, "min": 0, "max":100, \
                                 "type":"float"},
-              "Walk Sequence Length":{"value":5, "min":1, "max":sys.maxint, \
-                                "type":"int"},
               "Stride Width":{"value":0.25, "min":0, "max":1, "type":"float"},
               "In Place Turn Size":{"value":math.pi / 16, "min":0, \
                                     "max":math.pi / 2, "type":"float"},
-              "Turn Radius":{"value":2, "min":0.01, "max":100, "type":"float"},
               "Swing Height":{"value":0.3, "min":0, "max":1, "type":"float"}}
 
     steps = []
@@ -87,11 +82,9 @@ class AtlasTeleop(object):
 
         for command in req.commands:            
             if self.keys.has_key(command):
-                cmd = self.keys[command]
-                
+                cmd = self.keys[command]                
                 for i in range(cmd["steps"]):
                     self.add_step(cmd["radius"])
-                print str(self.steps)
 
         if (len(self.steps) > 0):
             self._isWalking = True;
@@ -132,8 +125,8 @@ class AtlasTeleop(object):
                 ])
         
         Th = rpy[2]
-        X = last_step.pose.position.x + signum(last_step.foot_index) * W/2 * math.cos(Th)
-        Y = last_step.pose.position.y + signum(last_step.foot_index) * W/2 * math.sin(Th)
+        X = last_step.pose.position.x + signum(last_step.foot_index) * W/2 * math.sin(Th)
+        Y = last_step.pose.position.y - signum(last_step.foot_index) * W/2 * math.cos(Th)
         
         # Transform from here to next step center
         if (R > L):
@@ -146,8 +139,8 @@ class AtlasTeleop(object):
         dY = R*(1 - math.cos(dTh))
         
         # Transform to next foot position
-        dX = dX + signum(last_step.foot_index) * W/2 * math.cos(Th + dTh)
-        dY = dY + signum(last_step.foot_index) * W/2 * math.sin(Th + dTh) # if isright
+        dX = dX + signum(last_step.foot_index) * W/2 * math.sin(dTh)
+        dY = dY - signum(last_step.foot_index) * W/2 * math.cos(dTh)
 
         # Store this foot position
         Q = quaternion_from_euler(0, 0, Th + dTh)
