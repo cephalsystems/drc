@@ -2,7 +2,7 @@
 import roslib; roslib.load_manifest('super_teleop')
 
 from razer_hydra.msg import Hydra
-from std_msgs.msg import String
+from std_msgs.msg import String, Empty
 from atlas_replay.srv import Record, RecordRequest, Play, PlayRequest
 import tf
 import rospy
@@ -34,6 +34,14 @@ class HydraControl():
 
         self.record_msg = RecordRequest()
         self.input = rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)
+        self.snapshot = rospy.Publisher("snapshot_request", Empty, tcp_nodelay=True)
+
+        # These are available in simulation only.
+        self.mode = rospy.Publisher('/atlas/mode', 
+                                    String, None, False, True, None)
+        self.control_mode = rospy.Publisher('/atlas/control_mode', 
+                                            String, None, False, True, None)
+
     
     def run(self):
         self.init()
@@ -138,6 +146,21 @@ class HydraControl():
             except rospy.ServiceException, e:
                 print "Recording command failed: %s" % str(e)
             self.defaultstatus()
+
+        if right.trigger > 0.9 and right_old.trigger <= 0.9:
+            print "Requesting snapshot."
+            self.snapshot.publish(Empty());
+
+        if right.buttons[0] and not right_old.buttons[0]:
+            print "Resetting to standing..."
+            self.mode.publish("harnessed")
+            self.control_mode.publish("Freeze")
+            self.control_mode.publish("StandPrep")
+            rospy.sleep(2.0)
+            self.mode.publish("nominal")
+            rospy.sleep(0.3)
+            self.control_mode.publish("Stand")
+            print "Reset complete."
 
 if __name__ == '__main__':
     rospy.init_node('hydra_control')
