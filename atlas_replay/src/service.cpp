@@ -126,6 +126,7 @@ std::vector<int> get_trajectory_joints(atlas_replay::Upload::Request &trajectory
     }
   }
 
+  std::sort(joint_indices.begin(), joint_indices.end());
   return joint_indices;
 }
 
@@ -170,7 +171,7 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
 
     // Create interpolated command
     for (size_t idx = 0; idx < joint_idx.size(); ++idx) {
-      if (joint_idx[idx] < command.position.size())
+      if (joint_idx[idx] < (int)command.position.size())
       {
         // Fill in normal joint
         command.position[joint_idx[idx]] = (nalpha * prev_state[idx] +
