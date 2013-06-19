@@ -19,7 +19,7 @@ class HydraControl():
 
     def defaultstatus(self):
         self.status("text:setText('[%s] %s')" %
-                    (str(self.slot) if self.slot != 0 else "[ERASE]",
+                    (str(self.slot) if self.slot != 0 else "DEL",
                      "REC" if self.record_msg.record else "---"))
 
     def init(self):
