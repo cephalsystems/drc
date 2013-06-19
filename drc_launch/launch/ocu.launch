@@ -3,8 +3,11 @@
   <arg name="output" default="log" />
 
   <group>
-    <param name="/ocu_use_sim_time" value="false" />
     <remap from="/use_sim_time" to="/ocu_use_sim_time" />
+    <param name="/ocu_use_sim_time" value="false" />
+    
+    <!-- rospy doesn't remap sim time correctly -->
+    <param name="/use_sim_time" value="false" />
 
     <remap from="/clock" to="/clock_ocu" />
     <remap from="/tf" to="/tf_ocu" />
