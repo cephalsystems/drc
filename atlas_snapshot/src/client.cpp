@@ -14,7 +14,6 @@
  * Current robot state.
  */
 sensor_msgs::Image image_;
-sensor_msgs::Image depth_;
 sensor_msgs::PointCloud cloud_;
 sensor_msgs::JointState joints_;
 tf::Transform imu_ = tf::Transform::getIdentity();
@@ -40,38 +39,27 @@ void snapshot_callback(const atlas_snapshot::Snapshot &msg)
   // Decode panorama image into regular image
   try
   {
-    // Convert from JPEG back to OpenCV
+    // Convert from intensity JPEG back to OpenCV
     const cv::Mat image_buffer = cv::Mat(msg.image);
     cv::Mat image_matrix = cv::imdecode(image_buffer, -1);
 
+    // Convert from depth JPEG back to OpenCV
+    const cv::Mat depth_buffer = cv::Mat(msg.depth);
+    cv::Mat depth_matrix = cv::imdecode(depth_buffer, -1);
+ 
+    // Create an output image that is three channels
+    const std::vector<cv::Mat> in_matrices
+        = {depth_matrix, image_matrix, image_matrix};
+    cv::Mat rgb_matrix(image_matrix.rows, image_matrix.cols, CV_8UC3);
+    cv::merge(in_matrices, rgb_matrix);
+    
     // Create a simple timestamp
     std_msgs::Header header;
     header.stamp = ros::Time::now();
 
     // Convert from OpenCV to image message
-    cv_bridge::CvImage image = cv_bridge::CvImage(header, "mono8", image_matrix);
+    cv_bridge::CvImage image = cv_bridge::CvImage(header, "rgb8", rgb_matrix);
     image_ = *(image.toImageMsg());
-  }
-  catch (cv_bridge::Exception& e)
-  {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
-
-  // Decode panorama image into regular image
-  try
-  {
-    // Convert from JPEG back to OpenCV
-    const cv::Mat depth_buffer = cv::Mat(msg.depth);
-    cv::Mat depth_matrix = cv::imdecode(depth_buffer, -1);
-
-    // Create a simple timestamp
-    std_msgs::Header header;
-    header.stamp = ros::Time::now();
-
-    // Convert from OpenCV to depth message
-    cv_bridge::CvImage depth = cv_bridge::CvImage(header, "mono8", depth_matrix);
-    depth_ = *(depth.toImageMsg());
   }
   catch (cv_bridge::Exception& e)
   {
@@ -101,7 +89,6 @@ int main(int argc, char *argv[])
 
   image_transport::ImageTransport it(nh);
   image_transport::Publisher pub_image = it.advertise("image", 1);
-  image_transport::Publisher pub_depth = it.advertise("depth", 1);
   
   // Set up fixed publish rate
   int rate;
@@ -129,12 +116,6 @@ int main(int argc, char *argv[])
       pub_image.publish(image_);
     }
 
-    // Send out the latest depth map
-    if (depth_.data.size() > 0) {
-      depth_.header.stamp = ros::Time::now();
-      pub_depth.publish(depth_);
-    }
-    
     // Send out the latest IMU transformation for the head
     br.sendTransform(tf::StampedTransform(imu_, ros::Time::now(),
                                           "world", "imu_link"));
