@@ -43,10 +43,10 @@ class HydraControl():
         self.slot = 0
         self.plan = []
 
-        self.record = rospy.ServiceProxy('record', Record)
-        self.send = rospy.ServiceProxy('send', Play)
-        self.play = rospy.ServiceProxy('play', Play)
-        self.walk = rospy.ServiceProxy('walk', Walk)
+        self.record = rospy.ServiceProxy('record', Record, persistent=True)
+        self.send = rospy.ServiceProxy('send', Play, persistent=True)
+        self.play = rospy.ServiceProxy('play', Play, persistent=True)
+        self.walk = rospy.ServiceProxy('walk', Walk, persistent=True)
 
         self.record_msg = RecordRequest()
         self.input = rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)

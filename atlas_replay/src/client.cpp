@@ -194,7 +194,7 @@ int main(int argc, char** argv)
       nh_->advertise<std_msgs::String>("commands", 1);
   
   // Connect to service to record and upload trajectories
-  upload_ = nh_->serviceClient<atlas_replay::Upload>("upload");
+  upload_ = nh_->serviceClient<atlas_replay::Upload>("upload", true);
   ros::ServiceServer record = nh_->advertiseService("record", record_service);
   ros::ServiceServer send = nh_->advertiseService("send", send_service);
 
