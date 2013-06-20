@@ -4,6 +4,7 @@ import roslib; roslib.load_manifest('super_teleop')
 from razer_hydra.msg import Hydra
 from std_msgs.msg import String, Empty
 from atlas_replay.srv import Record, RecordRequest, Play, PlayRequest
+from super_teleop.srv import Walk, WalkRequest
 import tf
 import rospy
 
@@ -22,15 +23,20 @@ class HydraControl():
                     (str(self.slot) if self.slot != 0 else "DEL",
                      "REC" if self.record_msg.record else "---"))
 
+    def update_plan(self):
+        self.status("planpreview:clear()\nplanpreview:setPreview('" + ''.join(self.plan) + "')")
+
     def init(self):
         self.commands = rospy.Publisher("commands", String, tcp_nodelay=True)
         self.br = tf.TransformBroadcaster()
         self.prev_msg = None
         self.slot = 0
+        self.plan = []
 
         self.record = rospy.ServiceProxy('record', Record)
         self.send = rospy.ServiceProxy('send', Play)
         self.play = rospy.ServiceProxy('play', Play)
+        self.walk = rospy.ServiceProxy('walk', Walk)
 
         self.record_msg = RecordRequest()
         self.input = rospy.Subscriber("hydra_calib", Hydra, self.process_hydra)
@@ -70,8 +76,10 @@ class HydraControl():
                 send_msg.slots = [0, 1] # don't save trajectory, execute immediately
                 self.send(send_msg)
                 print "Execution complete."
+                self.defaultstatus()
             except rospy.ServiceException, e:
                 print "Execution command failed: %s" % str(e)
+                self.status("text:setText('Execution failed!')")
 
         if left.buttons[6] and not left_old.buttons[6] and not self.record_msg.record:
             try:
@@ -82,6 +90,7 @@ class HydraControl():
                     send_msg.slots = [] # don't save trajectory, don't execute (erase)
                     self.send(send_msg)
                     print "Trajectory erased."
+                    self.defaultstatus()
                 else:
                     self.status("text:setText('Saving [%d]')" % self.slot)
                     print "Saving trajectory to slot [%d]." % self.slot
@@ -89,8 +98,10 @@ class HydraControl():
                     send_msg.slots = [self.slot] # save trajectory, do not execute
                     self.send(send_msg)
                     print "Saved trajectory."
+                    self.defaultstatus()
             except rospy.ServiceException, e:
                 print "Execution command failed: %s" % str(e)
+                self.status("text:setText('Command failed!')")
 
         if left.joy[1] > 0.9 and left_old.joy[1] <= 0.9:
             if self.slot >= 255:
@@ -138,14 +149,16 @@ class HydraControl():
                     self.record(self.record_msg)
                 except rospy.ServiceException, e:
                     print "Update command failed: %s" % str(e)
+                    self.status("text:setText('Update command failed!')")
                        
         if left.trigger > 0.9 and left_old.trigger <= 0.9:
             self.record_msg.record = not self.record_msg.record
             try:
                 self.record(self.record_msg)
+                self.defaultstatus()
             except rospy.ServiceException, e:
                 print "Recording command failed: %s" % str(e)
-            self.defaultstatus()
+                self.status("text:setText('REC command failed!')")
 
         if right.trigger > 0.9 and right_old.trigger <= 0.9:
             print "Requesting snapshot."
@@ -161,6 +174,42 @@ class HydraControl():
             rospy.sleep(0.6)
             self.control_mode.publish("Stand")
             print "Reset complete."
+
+        if right.joy[1] > 0.9 and right_old.joy[1] <= 0.9:
+            self.plan.append('i')
+            self.update_plan()
+            print "[FORWARD]"
+
+        if right.joy[0] < -0.9 and right_old.joy[0] >= -0.9:
+            self.plan.append('j')
+            self.update_plan()
+            print "[LEFT]"
+
+        if right.joy[0] > 0.9 and right_old.joy[0] <= 0.9:
+            self.plan.append('l')
+            self.update_plan()
+            print "[RIGHT]"
+
+        if right.buttons[5] and not right_old.buttons[5]:
+            self.plan = []
+            self.update_plan()
+            print "[CLEAR]"
+
+        if right.buttons[6] and not right_old.buttons[6]:
+            if len(self.plan) > 0:
+                try:
+                    msg = WalkRequest()
+                    msg.commands = [ ord(x) for x in self.plan ]
+
+                    self.status("text:setText('[WALKING]')")
+                    print "Started walking."
+                    self.walk(msg)
+                    print "Completed walking."
+                    self.defaultstatus()
+                except rospy.ServiceException, e:
+                    print "Walking command failed: %s" % str(e)
+                    self.status("text:setText('Walking command failed!')")
+
 
 if __name__ == '__main__':
     rospy.init_node('hydra_control')

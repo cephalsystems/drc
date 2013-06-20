@@ -21,6 +21,7 @@
     <remap from="record" to="/voodoo/record" />
     <remap from="send" to="/voodoo/send" />
     <remap from="play" to="/play" />
+    <remap from="walk" to="/walk" />
     <remap from="commands" to="/snap/commands" />
     <remap from="snapshot_request" to="/snapshot_request" />
   </node>
