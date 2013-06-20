@@ -33,9 +33,9 @@ class AtlasTeleop(object):
 
     # Keyboard teleop bindings
     keys = { 
-        'u': {"steps":4, "radius": 1.4 }, 
+        'u': {"steps":4, "radius": 1.48 }, 
         'i': {"steps":4, "radius": 100 }, 
-        'o': {"steps":4, "radius":-1.4 }, 
+        'o': {"steps":4, "radius":-1.48 }, 
         'j': {"steps":4, "radius": 0.1 }, 
         'l': {"steps":4, "radius":-0.1 }
         }
@@ -49,7 +49,7 @@ class AtlasTeleop(object):
               "Stride Duration":{ "value":0.63, "min": 0, "max":100, \
                                 "type":"float"},
               "Stride Width":{"value":0.25, "min":0, "max":1, "type":"float"},
-              "In Place Turn Size":{"value":math.pi / 16, "min":0, \
+              "In Place Turn Size":{"value":math.pi / 20, "min":0, \
                                     "max":math.pi / 2, "type":"float"},
               "Swing Height":{"value":0.3, "min":0, "max":1, "type":"float"}}
 
