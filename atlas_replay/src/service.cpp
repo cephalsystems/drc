@@ -58,10 +58,6 @@ atlas_msgs::AtlasCommand initialize_command() {
     command.kp_velocity[i]  = 0; // TODO: should this be non-zero?
   }
 
-  // Point the neck down
-  command.position[3] = 0.3;
-  command.k_effort[3] = 255;
-
   command.header.stamp = ros::Time::now();
   return command;
 }
@@ -107,7 +103,8 @@ atlas_replay::Upload::Request load_trajectory(uint8_t slot) {
   // Deserialize file using ROS
   ros::serialization::IStream stream(buffer.get(), serial_size);
   ros::serialization::deserialize<atlas_replay::Upload::Request>(stream, trajectory);
-
+  
+  trajectory.slot = slot;
   return trajectory;
 }
 
@@ -198,6 +195,10 @@ bool play_trajectory(atlas_replay::Upload::Request &trajectory) {
       }
     }
 
+    // Point the neck down for < 128 slots
+    command.position[3] = (trajectory.slot < 128) ? 0.3 : -1.57;
+    command.k_effort[3] = 255;
+    
     // Send it to Atlas!
     pub_atlas_command_.publish(command);
 
