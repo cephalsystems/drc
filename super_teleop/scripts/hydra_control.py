@@ -19,9 +19,19 @@ class HydraControl():
         self.commands.publish(msg)
 
     def defaultstatus(self):
+        preview = not self.record_msg.left_leg \
+            and not self.record_msg.right_leg \
+            and not self.record_msg.left_arm \
+            and not self.record_msg.right_arm \
+            and not self.record_msg.torso
+        state = "REC" if not preview and self.record_msg.record \
+            else "PLAY" if preview and self.record_msg.record \
+            else "PLAY?" if preview and not self.record_msg.record \
+            else "REC?" 
+
         self.status("text:setText('[%s] %s')" %
-                    (str(self.slot) if self.slot != 0 else "DEL",
-                     "REC" if self.record_msg.record else "---"))
+                    (("%03d" % self.slot) if self.slot != 0 else "---",
+                     state))
 
     def update_plan(self):
         self.status("planpreview:clear()\nplanpreview:setPreview('" + ''.join(self.plan) + "')")
@@ -70,16 +80,17 @@ class HydraControl():
         # Left paddle bindings
         if left.buttons[0] and not left_old.buttons[0] and not self.record_msg.record:
             try:
-                self.status("text:setText('Executing current.')")
-                print "Executing current trajectory."
+                self.status("text:setText('Saving [%d]')" 
+                            % self.slot)
+                print "Saving current [%d]." % self.slot
                 send_msg = PlayRequest()
-                send_msg.slots = [0, 1] # don't save trajectory, execute immediately
+                send_msg.slots = [self.slot] # don't execute immediately
                 self.send(send_msg)
-                print "Execution complete."
+                print "Save complete."
                 self.defaultstatus()
             except rospy.ServiceException, e:
-                print "Execution command failed: %s" % str(e)
-                self.status("text:setText('Execution failed!')")
+                print "Save command failed: %s" % str(e)
+                self.status("text:setText('Save failed!')")
 
         if left.buttons[6] and not left_old.buttons[6] and not self.record_msg.record:
             try:
@@ -92,12 +103,12 @@ class HydraControl():
                     print "Trajectory erased."
                     self.defaultstatus()
                 else:
-                    self.status("text:setText('Saving [%d]')" % self.slot)
-                    print "Saving trajectory to slot [%d]." % self.slot
-                    send_msg = PlayRequest()
-                    send_msg.slots = [self.slot] # save trajectory, do not execute
-                    self.send(send_msg)
-                    print "Saved trajectory."
+                    self.status("text:setText('Playing [%d]')" % self.slot)
+                    print "Playing trajectory from slot [%d]." % self.slot
+                    play_msg = PlayRequest()
+                    play_msg.slots = [self.slot] # save trajectory, do not execute
+                    self.play(play_msg)
+                    print "Played trajectory."
                     self.defaultstatus()
             except rospy.ServiceException, e:
                 print "Execution command failed: %s" % str(e)

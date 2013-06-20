@@ -143,6 +143,8 @@ bool send_service(atlas_replay::Play::Request &request,
   trajectory_.slot = request.slots[0];
   if (request.slots.size() > 1 && request.slots[1] != 0) {
     trajectory_.flags |= 1 << trajectory_.EXECUTE;
+  } else {
+    trajectory_.flags &= ~(1 << trajectory_.EXECUTE);
   }
 
   // Upload trajectory
