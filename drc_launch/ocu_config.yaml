@@ -1,3 +1,3 @@
 local_pubs: [/snapshot_request]
 foreign_pubs: [/snapshot]
-foreign_services: [/play /upload /walk]
+foreign_services: [/play, /upload, /walk]
