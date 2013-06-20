@@ -1,6 +1,10 @@
 <!-- Start up voodoo teleop driver -->
 <launch>
   <arg name="output" default="log" />
+
+  <node name="voodoo_killer" 
+        pkg="drc_launch" type="kill_voodoo_driver.sh" >
+  </node>
   
   <node name="voodoo_driver" ns="voodoo"
         pkg="voodoo_driver" type="driver" 
