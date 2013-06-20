@@ -1,12 +1,6 @@
 <launch>
   <arg name="output" default="log" />
 
-  <node name="depth_stream" pkg="msgpack_streamer" type="image_stream"
-        output="$(arg output)" respawn="true">
-    <param name="port" value="6666" />
-    <remap from="image" to="/snap/depth" />
-  </node>
-
   <node name="image_stream" pkg="msgpack_streamer" type="image_stream"
         output="$(arg output)" respawn="true">
     <param name="port" value="6667" />
