@@ -1,5 +1,11 @@
 <launch>
   <arg name="output" default="log" />
+  <arg name="master" />
+
+  <node pkg="multimaster" type="master_sync.py" name="master_sync" output="screen"> 
+    <param name="foreign_master" value="http://$(arg master):11311" />      
+    <rosparam command="load" file="$(find drc_launch)/fc_config.yaml" />
+  </node>
 
   <group>
     <param name="/use_sim_time" value="true" />
