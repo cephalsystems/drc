@@ -24,7 +24,7 @@
                 joint: "l_arm_mwx"
                 min: -2.3
                 max: 2.3
-                offset: 0.0
+                offset: 0.6
             "8":
                 joint: "l_arm_elx"
                 min: -2.3
@@ -59,7 +59,7 @@
                 joint: "r_arm_mwx"
                 min: 2.3
                 max: -2.3
-                offset: 0.0
+                offset: -0.4
             "3":
                 joint: "r_arm_elx"
                 min: 2.3
