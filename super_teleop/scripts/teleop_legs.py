@@ -5,7 +5,8 @@ from atlas_msgs.msg import AtlasSimInterfaceCommand, \
                            AtlasSimInterfaceState, \
                            AtlasBehaviorStepData, \
                            AtlasBehaviorWalkParams, \
-                           AtlasBehaviorStandParams
+                           AtlasBehaviorStandParams, \
+                           AtlasCommand
 from std_msgs.msg import Header
 from geometry_msgs.msg import Pose
 from std_msgs.msg import String
@@ -28,6 +29,39 @@ def signum(int):
     if(int <= 0): return -1;
     elif(int > 0): return 1;
     else: return int;
+
+ATLAS_JOINT_NAMES = [ 'back_lbz', 'back_mby', 'back_ubx', 'neck_ay',
+                      'l_leg_uhz', 'l_leg_mhx', 'l_leg_lhy', 'l_leg_kny', 'l_leg_uay', 'l_leg_lax',
+                      'r_leg_uhz', 'r_leg_mhx', 'r_leg_lhy', 'r_leg_kny', 'r_leg_uay', 'r_leg_lax',
+                      'l_arm_usy', 'l_arm_shx', 'l_arm_ely', 'l_arm_elx', 'l_arm_uwy', 'l_arm_mwx',
+                      'r_arm_usy', 'r_arm_shx', 'r_arm_ely', 'r_arm_elx', 'r_arm_uwy', 'r_arm_mwx']
+
+def init_atlas_command():
+
+    # Initialize an Atlas command structure                               
+    n = 28
+    command = AtlasCommand()
+    command.position    = [0] * n
+    command.velocity    = [0] * n
+    command.effort      = [0] * n
+    command.kp_velocity = [0] * n
+    command.k_effort    = [0] * n
+    command.kp_position = [ rospy.get_param('atlas_controller/gains/' + name + '/p')
+                            for name in ATLAS_JOINT_NAMES ]
+    command.ki_position = [ rospy.get_param('atlas_controller/gains/' + name + '/i')
+                            for name in ATLAS_JOINT_NAMES ]
+    command.kd_position = [ rospy.get_param('atlas_controller/gains/' + name + '/d')
+                            for name in ATLAS_JOINT_NAMES ]
+    command.i_effort_max = [ rospy.get_param("atlas_controller/gains/" + name + "/i_clamp")
+                             for name in ATLAS_JOINT_NAMES ]
+    command.i_effort_min = [ -i_clamp for i_clamp in command.i_effort_max ] 
+
+    # Move the stupid head down
+    command.position[3] = 0.3
+    command.k_effort[3] = 255
+    
+    return command
+
 
 class AtlasTeleop(object):
 
@@ -58,10 +92,13 @@ class AtlasTeleop(object):
     
     def init(self):
         self._isWalking = False;
+        self.joint_command = init_atlas_command()
         
         # Connects to necessary command topics
         self.command = rospy.Publisher('/atlas/atlas_sim_interface_command', \
-                                       AtlasSimInterfaceCommand)
+                                           AtlasSimInterfaceCommand)
+        self.joints = rospy.Publisher('/atlas/atlas_command', \
+                                          AtlasCommand)
         self.service = rospy.Service('walk', Walk, self.walk_service)
         self.listen = rospy.Subscriber("/atlas/atlas_sim_interface_state", \
                                            AtlasSimInterfaceState, \
@@ -87,8 +124,11 @@ class AtlasTeleop(object):
         if (len(self.steps) > 0):
             self._isWalking = True;
             rospy.loginfo('Started walk with {0} steps'.format(len(self.steps)))
+
             while(self._isWalking):
-                pass
+                rospy.sleep(0.1)
+
+            self.joints.publish(self.joint_command)
             rospy.sleep(1.0)
             rospy.loginfo('Completed walk with {0} steps'.format(len(self.steps)))
 

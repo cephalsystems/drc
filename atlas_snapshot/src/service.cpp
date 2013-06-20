@@ -144,17 +144,20 @@ void snapshot_callback(const std_msgs::EmptyConstPtr &msg)
         }
       }
     }
+
+    // Set up JPG parameters
+    std::vector<int> params = { CV_IMWRITE_JPEG_QUALITY, 75 };
     
     // Encode image into jpg and store in snapshot
     // Based on: http://stackoverflow.com/a/9930442
     cv::vector<uchar> jpeg_image_buffer;
-    cv::imencode(".jpg", image_buffer, jpeg_image_buffer, std::vector<int>());
+    cv::imencode(".jpg", image_buffer, jpeg_image_buffer, params);
     snapshot.image = jpeg_image_buffer;
 
     // Encode image into jpg and store in snapshot
     // Based on: http://stackoverflow.com/a/9930442
     cv::vector<uchar> jpeg_depth_buffer;
-    cv::imencode(".jpg", depth_buffer, jpeg_depth_buffer, std::vector<int>());
+    cv::imencode(".jpg", depth_buffer, jpeg_depth_buffer, params);
     snapshot.depth = jpeg_depth_buffer;
   }
 
