@@ -64,7 +64,7 @@
                 joint: "r_arm_elx"
                 min: 2.3
                 max: -2.3
-                offset: -1.6
+                offset: -1.4
             "12":
                 joint: "r_arm_uwy"
                 min: 2.3
